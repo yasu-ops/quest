@@ -1,0 +1,7 @@
+map_id,name,sprite,question,option,correct
+0,農夫,villager,朝に4本足、昼に2本足、夜に3本足で歩くものは?,犬;人間;テーブル,1
+0,旅人,villager,海なのに水がないものは?,砂漠;地図の海;世界地図,1
+1,近衛兵,soldier,プログラミングでループを抜けるのに使うのは?,break;stop;exit,0
+1,魔法使い,guard,光の速度は秒速約何km?,30万km;3万km;300万km,0
+2,大臣,guard,変数に値を代入する演算子は?,==;=;===,1
+2,学者,soldier,地球から太陽までの距離は約?,150万km;1億5000万km;15億km,1
