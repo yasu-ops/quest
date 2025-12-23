@@ -2,15 +2,17 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>勇者のクイズ冒険</title>
+    <!-- ドット絵風の日本語フォントを読み込む -->
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
+        /* --- 変数定義 (色設定) --- */
         :root {
-            --bg-color: #000;
-            --text-color: #fff;
-            --border-color: #fff;
-            --accent-color: #f8b500;
+            --bg-color: #000; /* 背景色（黒） */
+            --text-color: #fff; /* 文字色（白） */
+            --border-color: #fff; /* 枠線色（白） */
+            --accent-color: #f8b500; /* 強調色（黄色、ドラクエ風） */
         }
 
         body {
@@ -18,147 +20,96 @@
             padding: 0;
             background-color: #222;
             color: var(--text-color);
+            /* ゲーム全体にドット絵風フォントを適用 */
             font-family: 'DotGothic16', sans-serif;
-            overflow: hidden;
+            overflow: hidden; /* スクロールを禁止 */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            touch-action: none;
+            height: 100dvh; /* 動的ビューポートに対応 */
+            touch-action: none; /* タッチデバイスでのピンチズームなどを無効化 */
         }
 
         #game-container {
             position: relative;
             width: 100%;
-            max-width: 600px;
-            aspect-ratio: 3/4;
+            max-width: 600px; /* PCでも大きくなりすぎないように制限 */
+            /* 画面内に収めるための制約を追加 */
+            max-height: calc(100dvh - 30px); /* ツールバーやセーフエリアを考慮して少し余裕を持たせる */
+            aspect-ratio: 3/4; /* 縦横比を固定 */
             background-color: var(--bg-color);
             border: 2px solid #444;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             overflow: hidden;
+            margin: auto; /* 中央配置 */
         }
 
         canvas {
             display: block;
             width: 100%;
             height: 100%;
-            image-rendering: pixelated;
+            image-rendering: pixelated; /* ドット絵のようにクッキリ表示させる設定 */
         }
 
+        /* --- UI Overlay (メッセージボックス & ステータス) --- */
         .ui-box {
             position: absolute;
             background: #000;
-            border: 4px double var(--border-color);
+            border: 4px double var(--border-color); /* 昔ながらの二重線枠 */
             border-radius: 4px;
             padding: 10px;
             box-sizing: border-box;
-            display: none;
+            display: none; /* デフォルトは非表示にしてJavaScriptで表示制御 */
         }
 
         #message-window {
-            bottom: 160px;
+            bottom: 165px; /* 仮想コントローラーの上に配置 */
             left: 5%;
             width: 90%;
-            min-height: 120px;
+            height: 120px;
             font-size: 18px;
             line-height: 1.6;
             z-index: 10;
-            padding-bottom: 40px;
         }
 
-        #message-ok-btn {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(200, 50, 50, 0.8);
-            border: 2px solid #fff;
-            border-radius: 4px;
-            padding: 6px 16px;
-            color: #fff;
-            font-family: 'DotGothic16', sans-serif;
-            font-size: 14px;
-            cursor: pointer;
-            user-select: none;
-            display: none;
-        }
-        #message-ok-btn:active {
-            background: rgba(255, 80, 80, 1);
-        }
-
-        #quiz-window {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            max-width: 400px;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 15;
-            padding: 20px;
-            padding-bottom: 50px;
-        }
-
-        #quiz-question {
-            font-size: 18px;
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-
-        #quiz-choices {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            margin-bottom: 10px;
+        #choice-window {
+            top: 20px;
+            right: 20px;
+            width: 200px;
+            z-index: 11;
         }
 
         .choice-item {
-            padding: 10px;
+            padding: 5px 10px;
             cursor: pointer;
-            list-style: none;
+            list-style: none; /* リストのデフォルトの点を消す */
             transition: background-color 0.1s;
-            margin-bottom: 5px;
-            border: 2px solid transparent;
         }
         
+        /* マウスオーバー/タップ時のフィードバック */
         .choice-item:hover {
             background-color: rgba(255, 255, 255, 0.1);
         }
 
         .choice-item.selected {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-color: var(--accent-color);
+            background-color: rgba(255, 255, 255, 0.2); /* 選択中の背景色 */
         }
 
         .choice-item.selected::before {
-            content: '▶';
+            content: '▶'; /* 選択中の行にカーソル（矢印）を表示 */
             margin-right: 5px;
             color: var(--accent-color);
         }
         
+        /* 選択されていないときはカーソル非表示 */
         .choice-item:not(.selected)::before {
             content: ' '; 
             margin-right: 5px;
         }
 
-        #quiz-ok-btn {
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(200, 50, 50, 0.8);
-            border: 2px solid #fff;
-            border-radius: 4px;
-            padding: 6px 16px;
-            color: #fff;
-            font-family: 'DotGothic16', sans-serif;
-            font-size: 14px;
-            cursor: pointer;
-            user-select: none;
-            display: none;
-        }
-        #quiz-ok-btn:active {
-            background: rgba(255, 80, 80, 1);
-        }
-
         .cursor-indicator {
+            /* テキスト入力完了後に表示される点滅カーソル */
             animation: blink 0.8s infinite;
             display: inline-block;
             margin-left: 5px;
@@ -172,15 +123,16 @@
             50% { opacity: 0; }
         }
 
+        /* --- 仮想コントローラー (モバイル操作用) --- */
         #controls {
             position: absolute;
-            bottom: 10px;
+            bottom: 15px; /* 画面下端から少し浮かせる */
             left: 0;
             width: 100%;
             height: 140px;
-            pointer-events: none;
+            pointer-events: none; /* デフォルトで透過させ、ボタン部分のみ反応させる */
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* 左右に分けて配置 */
             align-items: center;
             padding: 0 20px;
             box-sizing: border-box;
@@ -188,32 +140,37 @@
         }
 
         .d-pad {
+            /* 十字キー全体 */
             position: relative;
             width: 120px;
             height: 120px;
-            pointer-events: auto;
+            pointer-events: auto; /* クリック/タッチを有効化 */
         }
 
         .d-btn {
+            /* 各方向ボタンのスタイル */
             position: absolute;
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 5px;
         }
-        .d-btn:active { background: rgba(255, 255, 255, 0.5); }
+        .d-btn:active { background: rgba(255, 255, 255, 0.5); } /* 押された時の色 */
 
+        /* 各方向ボタンの位置指定 */
         .d-up { top: 0; left: 40px; width: 40px; height: 40px; }
         .d-down { bottom: 0; left: 40px; width: 40px; height: 40px; }
         .d-left { top: 40px; left: 0; width: 40px; height: 40px; }
         .d-right { top: 40px; right: 0; width: 40px; height: 40px; }
 
         .action-pad {
+            /* A/Bボタンのコンテナ */
             pointer-events: auto;
             display: flex;
             gap: 15px;
         }
 
         .action-btn {
+            /* A/Bボタンの共通スタイル */
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -227,54 +184,30 @@
             align-items: center;
             user-select: none;
         }
-        .action-btn:active { background: rgba(50, 50, 200, 0.7); }
-        .btn-b { background: rgba(50, 50, 200, 0.4); }
-        #loading-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100; /* 最前面に表示 */
-            color: #fff;
-            font-family: 'DotGothic16', sans-serif;
-        }
-
-        #loading-message {
-            margin-top: 10px;
-            font-size: 16px;
-            text-align: center;
-            white-space: pre-wrap; /* エラーメッセージの改行用 */
-        }        
+        .action-btn:active { background: rgba(200, 50, 50, 0.7); }
+        .btn-a { background: rgba(200, 50, 50, 0.4); } /* Aボタン (決定) */
+        .btn-b { background: rgba(50, 50, 200, 0.4); } /* Bボタン (キャンセル/未実装) */
 
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="loading-screen">
-        <h2 style="margin-top:0;">LOADING...</h2>
-        <div id="loading-message">準備中...</div>
-    </div>
+    <!-- ゲーム画面を描画するキャンバス要素 -->
     <canvas id="gameCanvas"></canvas>
 
+    <!-- メッセージ表示ウィンドウ -->
     <div id="message-window" class="ui-box">
         <div id="message-text"></div>
         <div id="message-cursor" class="cursor-indicator" style="display:none;"></div>
-        <div id="message-ok-btn">OK</div>
     </div>
 
-    <div id="quiz-window" class="ui-box">
-        <div id="quiz-question"></div>
-        <ul id="quiz-choices"></ul>
-        <div id="quiz-ok-btn">OK</div>
+    <!-- 選択肢ウィンドウ -->
+    <div id="choice-window" class="ui-box">
+        <div id="choices-list"></div>
     </div>
 
+    <!-- 仮想コントローラー -->
     <div id="controls">
         <div class="d-pad">
             <div class="d-btn d-up" data-key="ArrowUp"></div>
@@ -284,14 +217,16 @@
         </div>
         <div class="action-pad">
             <div class="action-btn btn-b" data-key="Cancel">B</div>
+            <div class="action-btn btn-a" data-key="Enter">A</div>
         </div>
     </div>
 </div>
 
 <script>
-    const TILE_SIZE = 32;
-    const VIEW_WIDTH = 15;
-    const VIEW_HEIGHT = 15;
+    // --- 定数と設定 ---
+    const TILE_SIZE = 32;       // 1タイルの大きさ（ピクセル）
+    const VIEW_WIDTH = 15;      // 画面に表示するタイル数（横）
+    const VIEW_HEIGHT = 15;     // 画面に表示するタイル数（縦）
 
     const COLOR_GRASS = '#4caf50';
     const COLOR_TREE = '#1b5e20';
@@ -301,6 +236,7 @@
     
     const SPRITE_HERO = { color: '#2196f3', type: 'hero' };
     const SPRITE_NPC_GUARD = { color: '#f44336', type: 'guard' };
+    const SPRITE_NPC_KING = { color: '#ffeb3b', type: 'king' };
     const SPRITE_NPC_VILLAGER = { color: '#8bc34a', type: 'villager' };
     const SPRITE_NPC_SOLDIER = { color: '#9e9e9e', type: 'soldier' };
 
@@ -312,11 +248,9 @@
     };
 
     let currentState = STATE.EXPLORING;
-
-    function changeMap(newMapId) { /* 実装は後述 */ }
+    const deepClone = (obj) => JSON.parse(JSON.stringify(obj));
 
     const MAP_DATA = [
-        // MAP 0: スタート地点
         {
             id: 0,
             name: "村外れの野原",
@@ -339,14 +273,39 @@
                 [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             ],
-            entities: []
+            entities: [
+                {
+                    x: 5, y: 5, name: '村人', sprite: SPRITE_NPC_VILLAGER,
+                    dialogue: ["この先に進めば王様の城だが、", "最初の門番がクイズを出してくるぞ。"],
+                    blocking: true
+                },
+                {
+                    x: 12, y: 5, name: '門番', sprite: SPRITE_NPC_GUARD,
+                    dialogue: ["止まれ！", "ここを通したければ、私のクイズに答えてみよ。"],
+                    blocking: true, 
+                    quiz: {
+                        question: "パンはパンでも、\n食べられないパンはなーんだ？",
+                        options: ["フライパン", "食パン", "ジャパン"],
+                        correct: 0,
+                        onCorrect: (npc) => {
+                            displayText("「正解だ！城の庭へ通るがよい。」", () => {
+                                npc.quiz = null; 
+                                changeMap(1); 
+                            });
+                        },
+                        onWrong: () => {
+                            displayText("「違うな。出直してこい！」", () => {
+                                pushPlayerBack();
+                            });
+                        }
+                    }
+                },
+            ]
         },
-        
-        // MAP 1: 城の庭
         {
             id: 1,
             name: "城の庭",
-            playerStart: { x: 9, y: 14 },
+            playerStart: { x: 5, y: 15 },
             layout: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
                 [1,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,1],
@@ -365,10 +324,35 @@
                 [1,1,1,1,1,1,1,1,1,9,9,1,1,1,1,1,1,1,1,1],
                 [1,1,1,1,1,1,1,1,1,9,9,1,1,1,1,1,1,1,1,1],
             ],
-            entities: []
+            entities: [
+                {
+                    x: 10, y: 4, name: '兵士', sprite: SPRITE_NPC_SOLDIER,
+                    dialogue: ["私は王様の近衛兵だ。", "謁見の間に入るには、\n私の出す難問を解いてもらおう。"],
+                    blocking: true, 
+                    quiz: {
+                        question: "Webページを作るために必須の言語は？",
+                        options: ["Python", "HTML", "C++"],
+                        correct: 1,
+                        onCorrect: (npc) => {
+                            displayText("「見事！城の奥へ進むが良い。」", () => {
+                                npc.quiz = null;
+                                changeMap(2);
+                            });
+                        },
+                        onWrong: () => {
+                            displayText("「残念。鍛錬を積んで出直せ！」", () => {
+                                pushPlayerBack();
+                            });
+                        }
+                    }
+                },
+                {
+                    x: 4, y: 10, name: '庭師', sprite: SPRITE_NPC_VILLAGER,
+                    dialogue: ["最近、水やりが大変でね。", "水場が多いだろう？"],
+                    blocking: true
+                },
+            ]
         },
-        
-        // MAP 2: 謁見の間
         {
             id: 2,
             name: "謁見の間",
@@ -391,14 +375,34 @@
                 [1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1],
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             ],
-            entities: []
+            entities: [
+                {
+                    x: 9, y: 3, name: '王様', sprite: SPRITE_NPC_KING,
+                    dialogue: ["よくぞ参った勇者よ！", "最後に、私からの究極のクイズに答えるのだ！"],
+                    blocking: true,
+                    quiz: {
+                        question: "プログラミングで「もし～なら」\nという条件分岐に使うのは？",
+                        options: ["loop", "if", "var"],
+                        correct: 1,
+                        onCorrect: (npc) => {
+                            displayText("「見事だ！\nお主こそ真のプログラマーじゃ！」", () => {
+                                npc.dialogue = ["世界は平和になった。"];
+                                npc.quiz = null;
+                                createConfetti();
+                            });
+                        },
+                        onWrong: () => {
+                            displayText("「勉強不足じゃな。」");
+                        }
+                    }
+                }
+            ]
         }
     ];
 
     let currentMapId = 0;
     let currentMap = MAP_DATA[currentMapId];
-    let entities = currentMap.entities;
-
+    let entities = deepClone(currentMap.entities);
     let player = {
         x: currentMap.playerStart.x,
         y: currentMap.playerStart.y,
@@ -408,189 +412,13 @@
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
     const messageWindow = document.getElementById('message-window');
     const messageText = document.getElementById('message-text');
     const messageCursor = document.getElementById('message-cursor');
-    const messageOkBtn = document.getElementById('message-ok-btn');
-    const quizWindow = document.getElementById('quiz-window');
-    const quizQuestion = document.getElementById('quiz-question');
-    const quizChoices = document.getElementById('quiz-choices');
-    const quizOkBtn = document.getElementById('quiz-ok-btn');
+    const choiceWindow = document.getElementById('choice-window');
+    const choicesList = document.getElementById('choices-list');
 
     let currentChoiceIndex = -1; 
-    let confettiParticles = [];
-    
-    let currentQuizData = null;
-    let currentQuizEntity = null;
-    let textAnimationTimer = null;
-    let fullText = "";
-    let isWaitingForEnter = false;
-    let textCallback = null;
-    let csvData = null;
-    let gameStarted = false;
-
-    // 起動時にCSVを自動読み込み
-    window.addEventListener('DOMContentLoaded', () => {
-        loadCSVFile();
-    });
-
-    async function loadCSVFile() {
-        const loadingMessage = document.getElementById('loading-message');
-        
-        try {
-            // quiz.csvをfetchで読み込み
-            const response = await fetch('quiz.csv');
-            
-            if (!response.ok) {
-                throw new Error(`CSVファイルが見つかりません (${response.status})`);
-            }
-            
-            const csvText = await response.text();
-            loadingMessage.textContent = 'CSVを解析中...';
-            
-            // 少し待ってから解析（ユーザーにメッセージを見せるため）
-            setTimeout(() => {
-                parseCSVAndStartGame(csvText);
-            }, 500);
-            
-        } catch (error) {
-            loadingMessage.innerHTML = `
-                <span style="color: #f44336;">エラー: ${error.message}</span><br>
-                <span style="font-size: 12px; margin-top: 10px; display: block;">
-                    HTMLファイルと同じフォルダに「quiz.csv」を配置してください<br>
-                    形式: map_id,name,sprite,question,option,correct
-                </span>
-            `;
-            console.error('CSV読み込みエラー:', error);
-        }
-    }
-
-    function parseCSVAndStartGame(csvText) {
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
-        
-        // ヘッダーチェック
-        const expectedHeaders = ['map_id', 'name', 'sprite', 'question', 'option', 'correct'];
-        const hasValidHeaders = expectedHeaders.every(h => headers.includes(h));
-        
-        if (!hasValidHeaders) {
-            alert('CSVの形式が正しくありません。\n必要な列: map_id,name,sprite,question,option,correct');
-            return;
-        }
-        
-        // CSVをパース
-        const npcsData = [];
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            
-            const values = lines[i].split(',').map(v => v.trim());
-            const npc = {
-                map_id: parseInt(values[0]),
-                name: values[1],
-                sprite: values[2],
-                question: values[3],
-                option: values[4],
-                correct: parseInt(values[5])
-            };
-            npcsData.push(npc);
-        }
-        
-        // NPCを各マップに配置
-        generateNPCsFromCSV(npcsData);
-        
-        // ローディング画面を非表示
-        document.getElementById('loading-screen').style.display = 'none';
-        
-        // ゲーム開始
-        gameStarted = true;
-        setTimeout(() => {
-            displayText(`勇者よ、${currentMap.name}で目覚めた。\nすべてのクイズに答えて進むのだ。`);
-        }, 500);
-    }
-
-    function generateNPCsFromCSV(npcsData) {
-        // map_idごとにNPCをグループ化
-        const npcsByMap = {};
-        npcsData.forEach(npc => {
-            if (!npcsByMap[npc.map_id]) {
-                npcsByMap[npc.map_id] = [];
-            }
-            npcsByMap[npc.map_id].push(npc);
-        });
-        
-        // 各マップにNPCを配置
-        Object.keys(npcsByMap).forEach(mapId => {
-            const mapIndex = parseInt(mapId);
-            if (mapIndex < 0 || mapIndex >= MAP_DATA.length) return;
-            
-            const map = MAP_DATA[mapIndex];
-            const npcs = npcsByMap[mapId];
-            
-            npcs.forEach(npcData => {
-                // スプライトを決定
-                let sprite = SPRITE_NPC_VILLAGER;
-                if (npcData.sprite.toLowerCase() === 'guard') {
-                    sprite = SPRITE_NPC_GUARD;
-                } else if (npcData.sprite.toLowerCase() === 'soldier') {
-                    sprite = SPRITE_NPC_SOLDIER;
-                } else if (npcData.sprite.toLowerCase() === 'villager') {
-                    sprite = SPRITE_NPC_VILLAGER;
-                }
-                
-                // オプションを配列に変換（セミコロン区切りを想定）
-                const options = npcData.option.split(';').map(o => o.trim());
-                
-                // ランダムな位置を生成
-                const pos = findRandomWalkablePosition(map);
-                
-                if (pos) {
-                    map.entities.push({
-                        x: pos.x,
-                        y: pos.y,
-                        name: npcData.name,
-                        sprite: sprite,
-                        blocking: true,
-                        quiz: {
-                            question: npcData.question,
-                            options: options,
-                            correct: npcData.correct
-                        }
-                    });
-                }
-            });
-        });
-        
-        // 現在のマップのエンティティを更新
-        entities = currentMap.entities;
-    }
-
-    function findRandomWalkablePosition(map) {
-        const layout = map.layout;
-        const playerStart = map.playerStart;
-        const maxAttempts = 1000;
-        
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            const x = Math.floor(Math.random() * layout[0].length);
-            const y = Math.floor(Math.random() * layout.length);
-            
-            // 歩行可能なタイル (0, 3, 9)
-            const tile = layout[y][x];
-            if (tile !== 0 && tile !== 3 && tile !== 9) continue;
-            
-            // プレイヤーのスタート位置から離れている
-            const dist = Math.abs(x - playerStart.x) + Math.abs(y - playerStart.y);
-            if (dist < 3) continue;
-            
-            // 既存のNPCと重ならない
-            const overlap = map.entities.some(e => e.x === x && e.y === y);
-            if (overlap) continue;
-            
-            return { x, y };
-        }
-        
-        return null;
-    }
 
     function resize() {
         const container = document.getElementById('game-container');
@@ -605,18 +433,11 @@
     let lastKeyTime = 0;
     const keyRepeatRate = 150;
 
-    // OKボタンのクリックイベント
-    messageOkBtn.addEventListener('click', () => {
-        if (currentState === STATE.DIALOGUE) {
-            progressDialogue();
-        }
-    });
-
-    quizOkBtn.addEventListener('click', () => {
-        if (currentState === STATE.CHOICE && currentChoiceIndex !== -1) {
-            confirmChoice();
-        }
-    });
+    let currentQuizData = null;
+    let textAnimationTimer = null;
+    let fullText = "";
+    let isWaitingForEnter = false;
+    let textCallback = null;
 
     window.addEventListener('keydown', (e) => {
         keys[e.code] = true;
@@ -633,13 +454,11 @@
             keys[key] = true;
             handleInput(key);
         }, {passive: false});
-
         el.addEventListener('touchend', (e) => {
             e.preventDefault();
             const key = el.getAttribute('data-key');
             keys[key] = false;
         });
-        
         el.addEventListener('mousedown', (e) => {
             const key = el.getAttribute('data-key');
             keys[key] = true;
@@ -662,31 +481,28 @@
     }
 
     function handleExplorationInput(code) {
-        // NPCに近づくと自動的にクイズが始まるため、ここでは何もしない
+        if (code === 'Enter' || code === 'Space' || code === 'KeyZ') {
+            checkInteraction();
+        }
     }
 
     function handleDialogueInput(code) {
         if (code === 'Enter' || code === 'Space' || code === 'KeyZ') {
-            progressDialogue();
-        }
-    }
-
-    function progressDialogue() {
-        if (isWaitingForEnter) {
-            if (textCallback) {
-                const cb = textCallback;
-                textCallback = null;
-                cb();
+            if (isWaitingForEnter) {
+                if (textCallback) {
+                    const cb = textCallback;
+                    textCallback = null;
+                    cb();
+                } else {
+                    closeDialogue();
+                }
             } else {
-                closeDialogue();
-            }
-        } else {
-            if (textAnimationTimer) {
-                clearInterval(textAnimationTimer);
-                messageText.innerHTML = fullText.replace(/\n/g, '<br>');
-                isWaitingForEnter = true;
-                messageCursor.style.display = 'inline-block';
-                messageOkBtn.style.display = 'block';
+                if (textAnimationTimer) {
+                    clearInterval(textAnimationTimer);
+                    messageText.innerHTML = fullText.replace(/\n/g, '<br>');
+                    isWaitingForEnter = true;
+                    messageCursor.style.display = 'inline-block';
+                }
             }
         }
     }
@@ -717,14 +533,11 @@
     function isWalkable(x, y) {
         const mapLayout = currentMap.layout;
         if (y < 0 || y >= mapLayout.length || x < 0 || x >= mapLayout[0].length) return false;
-        
         const tile = mapLayout[y][x];
         if (tile === 1 || tile === 2 || tile === 4) return false;
-
         for (let e of entities) {
-            if (e.x === x && e.y === y && e.blocking && !e.removed) return false;
+            if (e.x === x && e.y === y && e.blocking) return false;
         }
-        
         return true;
     }
 
@@ -732,42 +545,32 @@
         if (newMapId >= 0 && newMapId < MAP_DATA.length) {
             currentMapId = newMapId;
             currentMap = MAP_DATA[currentMapId];
-            
             player.x = currentMap.playerStart.x;
             player.y = currentMap.playerStart.y;
-            entities = currentMap.entities;
+            entities = deepClone(currentMap.entities); 
             player.direction = 'down';
-
             closeDialogue();
-            
-            displayText(`マップ移動:${currentMap.name}に到着した...`);
+            displayText(`マップ移動：${currentMap.name}に到着した...`);
         }
     }
 
     function update() {
         if (currentState === STATE.EXPLORING) {
             movePlayer();
-            checkAutoInteraction();
         }
     }
 
     function movePlayer() {
         const now = Date.now();
         if (now - lastKeyTime < keyRepeatRate) return;
-
-        let dx = 0;
-        let dy = 0;
-        let moved = false;
-
+        let dx = 0, dy = 0, moved = false;
         if (keys['ArrowUp']) { dy = -1; player.direction = 'up'; moved = true; }
         else if (keys['ArrowDown']) { dy = 1; player.direction = 'down'; moved = true; }
         else if (keys['ArrowLeft']) { dx = -1; player.direction = 'left'; moved = true; }
         else if (keys['ArrowRight']) { dx = 1; player.direction = 'right'; moved = true; }
-
         if (moved) {
             const newX = player.x + dx;
             const newY = player.y + dy;
-
             if (isWalkable(newX, newY)) {
                 player.x = newX;
                 player.y = newY;
@@ -777,36 +580,36 @@
         }
     }
 
-    function checkAutoInteraction() {
-        // プレイヤーの周囲8方向をチェック
-        const directions = [
-            {dx: 0, dy: -1},   // 上
-            {dx: 0, dy: 1},    // 下
-            {dx: -1, dy: 0},   // 左
-            {dx: 1, dy: 0},    // 右
-            {dx: -1, dy: -1},  // 左上
-            {dx: 1, dy: -1},   // 右上
-            {dx: -1, dy: 1},   // 左下
-            {dx: 1, dy: 1}     // 右下
-        ];
+    function checkInteraction() {
+        let targetX = player.x;
+        let targetY = player.y;
+        if (player.direction === 'up') targetY--;
+        if (player.direction === 'down') targetY++;
+        if (player.direction === 'left') targetX--;
+        if (player.direction === 'right') targetX++;
+        const targetEntity = entities.find(e => e.x === targetX && e.y === targetY);
+        if (targetEntity) {
+            startDialogueSequence(targetEntity);
+        }
+    }
 
-        for (let dir of directions) {
-            const targetX = player.x + dir.dx;
-            const targetY = player.y + dir.dy;
-            
-            const targetEntity = entities.find(e => 
-                e.x === targetX && 
-                e.y === targetY && 
-                !e.removed && 
-                e.quiz && 
-                !e.quizCompleted
-            );
-
-            if (targetEntity) {
-                startQuiz(targetEntity);
-                return;
+    function startDialogueSequence(entity) {
+        let msgIndex = 0;
+        function showNext() {
+            if (msgIndex < entity.dialogue.length) {
+                displayText(entity.dialogue[msgIndex], () => {
+                    msgIndex++;
+                    showNext();
+                });
+            } else {
+                if (entity.quiz) {
+                    startQuiz(entity, entity.quiz);
+                } else {
+                    closeDialogue();
+                }
             }
         }
+        showNext();
     }
 
     function displayText(text, callback = null) {
@@ -814,15 +617,11 @@
         messageWindow.style.display = 'block';
         messageText.innerHTML = '';
         messageCursor.style.display = 'none';
-        messageOkBtn.style.display = 'none';
-        
         fullText = text;
         textCallback = callback;
         isWaitingForEnter = false;
-
         let i = 0;
         if (textAnimationTimer) clearInterval(textAnimationTimer);
-
         textAnimationTimer = setInterval(() => {
             messageText.innerHTML = fullText.substring(0, i + 1).replace(/\n/g, '<br>');
             i++;
@@ -830,16 +629,13 @@
                 clearInterval(textAnimationTimer);
                 isWaitingForEnter = true;
                 messageCursor.style.display = 'inline-block';
-                messageOkBtn.style.display = 'block';
             }
         }, 30);
     }
 
     function closeDialogue() {
         messageWindow.style.display = 'none';
-        messageOkBtn.style.display = 'none';
-        quizWindow.style.display = 'none';
-        quizOkBtn.style.display = 'none';
+        choiceWindow.style.display = 'none';
         currentState = STATE.EXPLORING;
         textCallback = null;
     }
@@ -850,7 +646,6 @@
         if (player.direction === 'down') dy = -1;
         if (player.direction === 'left') dx = 1;
         if (player.direction === 'right') dx = -1;
-
         if (isWalkable(player.x + dx, player.y + dy)) {
             player.x += dx;
             player.y += dy;
@@ -858,146 +653,84 @@
         closeDialogue();
     }
 
-    function startQuiz(entity) {
+    function startQuiz(entity, quizData) {
         currentState = STATE.CHOICE;
-        currentQuizData = entity.quiz;
-        currentQuizEntity = entity;
-        currentChoiceIndex = 0;
-
-        quizWindow.style.display = 'block';
-        quizQuestion.innerHTML = currentQuizData.question.replace(/\n/g, '<br>');
-        renderChoices();
-        quizOkBtn.style.display = 'block';
+        currentQuizData = quizData;
+        currentQuizData.entityRef = entity;
+        currentChoiceIndex = -1; 
+        displayText(quizData.question, () => {
+            choiceWindow.style.display = 'block';
+            currentChoiceIndex = 0;
+            renderChoices();
+        });
     }
 
     function renderChoices() {
-        quizChoices.innerHTML = '';
+        choicesList.innerHTML = '';
         currentQuizData.options.forEach((opt, index) => {
             const li = document.createElement('li');
             li.className = 'choice-item ' + (index === currentChoiceIndex ? 'selected' : '');
             li.textContent = opt;
-            
             li.onclick = () => {
                 currentChoiceIndex = index; 
                 renderChoices(); 
                 confirmChoice();
             };
-            
             li.onmouseover = () => {
                 if (currentState === STATE.CHOICE) {
                     currentChoiceIndex = index;
                     renderChoices(); 
                 }
             }
-
-            quizChoices.appendChild(li);
+            choicesList.appendChild(li);
         });
     }
 
     function confirmChoice() {
         if (currentChoiceIndex === -1) return;
-
-        const selectedIndex = currentChoiceIndex;
-        currentChoiceIndex = -1;
-        
-        quizWindow.style.display = 'none';
-        quizOkBtn.style.display = 'none';
-        
-        if (selectedIndex === currentQuizData.correct) {
-            currentQuizEntity.quizCompleted = true;
-            
-            blinkAndRemoveNPC(currentQuizEntity, () => {
-                checkMapClear();
-            });
-        } else {
-            displayText("「違うな。出直してこい!」", () => {
-                pushPlayerBack();
-            });
-        }
-    }
-
-    function blinkAndRemoveNPC(npc, callback) {
-        let blinkCount = 0;
-        const maxBlinks = 6;
-        
-        const blinkInterval = setInterval(() => {
-            npc.blinking = !npc.blinking;
-            blinkCount++;
-            
-            if (blinkCount >= maxBlinks) {
-                clearInterval(blinkInterval);
-                npc.removed = true;
-                npc.blocking = false;
-                if (callback) callback();
-            }
-        }, 150);
-    }
-
-    function checkMapClear() {
-        const allCompleted = entities.every(e => !e.quiz || e.quizCompleted);
-        
-        if (allCompleted) {
-            if (currentMapId < MAP_DATA.length - 1) {
-                displayText(`このフロアをクリアした!\n次のフロアへ進もう。`, () => {
-                    changeMap(currentMapId + 1);
-                });
+        choiceWindow.style.display = 'none';
+        if (currentChoiceIndex === currentQuizData.correct) {
+            if (currentQuizData.onCorrect) {
+                currentQuizData.onCorrect(currentQuizData.entityRef);
             } else {
-                displayText(`おめでとう!\nすべてのフロアをクリアした!`, () => {
-                    createConfetti();
-                    closeDialogue();
-                });
+                closeDialogue();
             }
         } else {
-            closeDialogue();
+            if (currentQuizData.onWrong) {
+                currentQuizData.onWrong(currentQuizData.entityRef);
+            } else {
+                closeDialogue();
+            }
         }
+        currentChoiceIndex = -1;
     }
 
     function draw() {
         ctx.fillStyle = '#000';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
         const scale = canvas.width / (VIEW_WIDTH * TILE_SIZE);
-        
         ctx.save();
         ctx.scale(scale, scale);
-
         const camX = player.x * TILE_SIZE - (VIEW_WIDTH * TILE_SIZE) / 2 + TILE_SIZE / 2;
         const camY = player.y * TILE_SIZE - (VIEW_HEIGHT * TILE_SIZE) / 2 + TILE_SIZE / 2;
-
         ctx.translate(-camX, -camY);
-
         const mapLayout = currentMap.layout;
         for (let y = 0; y < mapLayout.length; y++) {
             for (let x = 0; x < mapLayout[y].length; x++) {
                 drawTile(x, y, mapLayout[y][x]);
             }
         }
-
         entities.forEach(ent => {
-            if (!ent.removed && !ent.blinking) {
-                drawSprite(ent.x, ent.y, ent.sprite);
-            } else if (ent.blinking) {
-                if (Math.random() > 0.5) {
-                    drawSprite(ent.x, ent.y, ent.sprite);
-                }
-            }
+            drawSprite(ent.x, ent.y, ent.sprite);
         });
-
         drawSprite(player.x, player.y, SPRITE_HERO, true);
-
         ctx.restore();
-
-        if (confettiParticles.length > 0) {
-            updateAndDrawConfetti();
-        }
-
         requestAnimationFrame(draw);
     }
 
     function drawTile(x, y, type) {
         const px = x * TILE_SIZE;
         const py = y * TILE_SIZE;
-
         let color = '#000';
         switch (type) {
             case 0: color = COLOR_GRASS; break;
@@ -1007,10 +740,8 @@
             case 9: color = COLOR_FLOOR; break;
             case 4: color = COLOR_WALL; break;
         }
-
         ctx.fillStyle = color;
         ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-
         if (type === 1) {
             ctx.fillStyle = '#2e7d32';
             ctx.fillRect(px + 8, py + 8, 16, 16);
@@ -1028,42 +759,40 @@
     function drawSprite(gridX, gridY, sprite, isPlayer = false) {
         const px = gridX * TILE_SIZE;
         const py = gridY * TILE_SIZE;
-
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
         ctx.ellipse(px + 16, py + 26, 10, 4, 0, 0, Math.PI * 2);
         ctx.fill();
-
         let offset = 0;
         if (isPlayer && (keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'])) {
              offset = (Date.now() % 200 < 100) ? -2 : 0;
         }
-
         ctx.fillStyle = sprite.color;
         ctx.fillRect(px + 8, py + 4 + offset, 16, 14);
-        
         ctx.fillStyle = '#000';
         ctx.fillRect(px + 8, py + 18 + offset, 6, 8);
         ctx.fillRect(px + 18, py + 18 + offset, 6, 8);
-        
         ctx.fillStyle = '#fff';
         ctx.fillRect(px + 10, py + 8 + offset, 4, 4);
         ctx.fillRect(px + 18, py + 8 + offset, 4, 4);
         ctx.fillStyle = '#000';
-        
         if (isPlayer) {
              let eyeOffsetX = 1;
              if (player.direction === 'left') eyeOffsetX = 0;
              if (player.direction === 'right') eyeOffsetX = 2;
-             
              ctx.fillRect(px + 10 + eyeOffsetX, py + 9 + offset, 2, 2);
              ctx.fillRect(px + 18 + eyeOffsetX, py + 9 + offset, 2, 2);
         } else {
              ctx.fillRect(px + 11, py + 9 + offset, 2, 2);
              ctx.fillRect(px + 19, py + 9 + offset, 2, 2);
         }
-
-        if (sprite.type === 'guard') {
+        if (sprite.type === 'king') {
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(px + 8, py + offset, 16, 4);
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(px + 6, py + 16 + offset, 20, 10);
+        }
+        else if (sprite.type === 'guard') {
             ctx.fillStyle = '#607d8b';
             ctx.fillRect(px + 6, py + 2 + offset, 20, 4);
         }
@@ -1074,48 +803,25 @@
     }
 
     function createConfetti() {
-        confettiParticles = [];
-        
-        for(let i = 0; i < 50; i++) {
-            confettiParticles.push({
-                x: Math.random() * canvas.width,
-                y: -20 - Math.random() * 100,
-                vx: (Math.random() - 0.5) * 2,
-                vy: Math.random() * 2 + 1,
-                size: Math.random() * 8 + 3,
-                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.2
-            });
-        }
-    }
-
-    function updateAndDrawConfetti() {
-        for (let i = confettiParticles.length - 1; i >= 0; i--) {
-            const p = confettiParticles[i];
-            
-            p.x += p.vx;
-            p.y += p.vy;
-            p.rotation += p.rotationSpeed;
-            
-            if (p.y > canvas.height + 20) {
-                confettiParticles.splice(i, 1);
-                continue;
-            }
-            
-            ctx.save();
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rotation);
-            ctx.fillStyle = p.color;
-            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-            ctx.restore();
+        for(let i=0; i<50; i++) {
+            setTimeout(() => {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 5 + 2;
+                const color = `hsl(${Math.random()*360}, 100%, 50%)`;
+                const oldFill = ctx.fillStyle;
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, size, size);
+                ctx.fillStyle = oldFill;
+            }, i * 20);
         }
     }
 
     setInterval(update, 1000 / 60);
     requestAnimationFrame(draw);
-
-
+    setTimeout(() => {
+        displayText(`勇者よ、${currentMap.name}で目覚めた。\n城へ向かい、王様に会うのだ。`);
+    }, 500);
 </script>
 </body>
 </html>
