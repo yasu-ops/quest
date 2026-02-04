@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+<head>
+<HTA:APPLICATION 
+    ID="QuizViewer"
+    APPLICATIONNAME="Quiz Viewer"
+    BORDER="thick"
+    BORDERSTYLE="normal"
+    CAPTION="yes"
+    MAXIMIZEBUTTON="yes"
+    MINIMIZEBUTTON="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+    INNERBORDER="yes"
+    SCROLL="no"
+    SCROLLFLAT="yes"
+/>
+<meta charset="utf-8">
+<title>Quiz Viewer</title>
+<style>
+body {
+    font-family: 'メイリオ', 'Meiryo', sans-serif;
+    margin: 20px;
+    background-color: #f5f5f5;
+}
+#container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+th {
+    background-color: #4CAF50;
+    color: white;
+    width: 150px;
+    white-space: nowrap;
+}
+td {
+    background-color: #fafafa;
+}
+.field-container {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    width: 100%;
+}
+.field-container input[type="text"],
+.field-container textarea {
+    flex: 1;
+    padding: 5px;
+    font-family: inherit;
+    box-sizing: border-box;
+    min-width: 0;
+}
+.field-container textarea {
+    resize: vertical;
+}
+.field-container .update-btn {
+    flex-shrink: 0;
+}
+button {
+    padding: 8px 16px;
+    margin: 2px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: inherit;
+}
+button:hover {
+    background-color: #45a049;
+}
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+.update-btn {
+    width: 80px;
+    padding: 5px;
+    margin-left: 5px;
+    flex-shrink: 0;
+}
+#controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+.font-controls {
+    display: flex;
+    gap: 5px;
+    margin-left: auto;
+}
+#recordNum {
+    width: 60px;
+    padding: 5px;
+}
+.error {
+    color: red;
+    margin-top: 10px;
+}
+.success {
+    color: green;
+    margin-top: 10px;
+}
+#container {
+    width: 100%;
+    box-sizing: border-box;
+}
+</style>
+<script type="text/javascript">
+var fso = new ActiveXObject("Scripting.FileSystemObject");
+var csvData = [];
+var headers = [];
+var currentRecord = 0;
+var fontSize = 14;
+var scriptPath = "";
+
+window.onload = function() {
+    var debugLog = "";
+    try {
+        // HTAファイルのパスを取得
+        var fullPath = window.location.href.replace("file:///", "").replace(/\//g, "\\");
+        scriptPath = fso.GetParentFolderName(fullPath);
+        debugLog += "1. パス取得完了: " + scriptPath + "<br>";
+        
+        loadFontSize();
+        debugLog += "2. フォントサイズ読み込み完了<br>";
+        
+        loadCurrentRecord();
+        debugLog += "3. レコード番号読み込み完了<br>";
+        
+        loadCSV();
+        debugLog += "4. CSV読み込み完了 (データ数: " + csvData.length + ")<br>";
+        
+        displayRecord();
+        debugLog += "5. 表示完了<br>";
+    } catch(e) {
+        debugLog += "<br><span style='color:red'>エラー発生: " + e.message + "<br>";
+        debugLog += "エラー詳細: " + e.description + "<br>";
+        debugLog += "スタック: " + (e.stack || "なし") + "</span><br>";
+        
+        showMessage("初期化エラー: " + e.message, "error");
+        document.getElementById("tableContainer").innerHTML = "<p class='error'>" + debugLog + "</p>";
+    }
+};
+
+function loadFontSize() {
+    try {
+        var fontFile = scriptPath + "\\font.txt";
+        if (fso.FileExists(fontFile)) {
+            var file = fso.OpenTextFile(fontFile, 1, false, -1);
+            var content = file.ReadAll();
+            file.Close();
+            fontSize = parseInt(content) || 14;
+        }
+    } catch(e) {
+        fontSize = 14;
+    }
+    applyFontSize();
+}
+
+function saveFontSize() {
+    try {
+        var fontFile = scriptPath + "\\font.txt";
+        var file = fso.CreateTextFile(fontFile, true, false);
+        file.Write(fontSize.toString());
+        file.Close();
+    } catch(e) {
+        showMessage("フォントサイズの保存に失敗しました", "error");
+    }
+}
+
+function loadCurrentRecord() {
+    try {
+        var recordFile = scriptPath + "\\current_record.txt";
+        if (fso.FileExists(recordFile)) {
+            var file = fso.OpenTextFile(recordFile, 1, false, -1);
+            var content = file.ReadAll();
+            file.Close();
+            currentRecord = parseInt(content) || 0;
+        }
+    } catch(e) {
+        currentRecord = 0;
+    }
+}
+
+function saveCurrentRecord() {
+    try {
+        var recordFile = scriptPath + "\\current_record.txt";
+        var file = fso.CreateTextFile(recordFile, true, false);
+        file.Write(currentRecord.toString());
+        file.Close();
+    } catch(e) {
+        showMessage("レコード番号の保存に失敗しました", "error");
+    }
+}
+
+function loadCSV() {
+    var debugHtml = "";
+    try {
+        var csvFile = scriptPath + "\\quiz.csv";
+        
+        if (!fso.FileExists(csvFile)) {
+            document.getElementById("tableContainer").innerHTML = "<p class='error'>quiz.csvが見つかりません: " + csvFile + "</p>";
+            throw new Error("quiz.csvが見つかりません");
+        }
+        
+        var file = fso.OpenTextFile(csvFile, 1, false, -1);
+        var content = file.ReadAll();
+        file.Close();
+        
+        debugHtml += "ファイル読み込み成功。文字数: " + content.length + "<br>";
+        
+        // 改行コードを統一（\r\n, \r, \n すべてを \n に）
+        content = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+        
+        var lines = content.split("\n");
+        
+        debugHtml += "総行数: " + lines.length + "<br>";
+        
+        if (lines.length < 2) {
+            document.getElementById("tableContainer").innerHTML = "<p class='error'>" + debugHtml + "CSVファイルが空か、ヘッダーのみです</p>";
+            throw new Error("CSVファイルが空か、ヘッダーのみです");
+        }
+        
+        headers = parseCSVLine(lines[0]);
+        csvData = [];
+        
+        debugHtml += "ヘッダー: " + headers.join(", ") + "<br><br>";
+        
+        for (var i = 1; i < lines.length; i++) {
+            // 文字列に変換してからtrimを実行
+            var lineStr = String(lines[i]);
+            var trimmedLine = lineStr.replace(/^\s+|\s+$/g, '');
+            
+            if (trimmedLine !== "" && trimmedLine.length > 0) {
+                var parsedLine = parseCSVLine(trimmedLine);
+                csvData.push(parsedLine);
+            }
+        }
+        
+        debugHtml += "データ行数: " + csvData.length + "<br>";
+        
+        if (currentRecord >= csvData.length) {
+            currentRecord = 0;
+        }
+    } catch(e) {
+        debugHtml += "<br><span style='color:red'>エラー: " + e.message + "</span>";
+        showMessage("CSVファイルの読み込みエラー: " + e.message, "error");
+        document.getElementById("tableContainer").innerHTML = "<pre>" + debugHtml + "</pre>";
+    }
+}
+
+function parseCSVLine(line) {
+    var result = [];
+    var cell = "";
+    var inQuotes = false;
+    
+    for (var i = 0; i < line.length; i++) {
+        var char = line.charAt(i);
+        
+        if (char === '"') {
+            if (inQuotes && line.charAt(i + 1) === '"') {
+                cell += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(cell);
+            cell = "";
+        } else if (char !== '\r') {
+            cell += char;
+        }
+    }
+    result.push(cell);
+    return result;
+}
+
+function escapeCSVField(field) {
+    if (field.indexOf(',') !== -1 || field.indexOf('"') !== -1 || field.indexOf('\n') !== -1) {
+        return '"' + field.replace(/"/g, '""') + '"';
+    }
+    return field;
+}
+
+function displayRecord() {
+    if (csvData.length === 0) {
+        var debugInfo = "<p>デバッグ情報:<br>";
+        debugInfo += "scriptPath: " + scriptPath + "<br>";
+        debugInfo += "csvData.length: " + csvData.length + "<br>";
+        debugInfo += "headers.length: " + headers.length + "<br>";
+        debugInfo += "headers: [" + headers.join(", ") + "]<br>";
+        debugInfo += "currentRecord: " + currentRecord + "<br>";
+        
+        var csvFile = scriptPath + "\\quiz.csv";
+        debugInfo += "CSVファイルパス: " + csvFile + "<br>";
+        debugInfo += "ファイル存在: " + fso.FileExists(csvFile) + "</p>";
+        
+        document.getElementById("tableContainer").innerHTML = debugInfo + "<p class='error'>データがありません</p>";
+        return;
+    }
+    
+    var html = "<table border='1' width='100%' cellpadding='10' cellspacing='0'>";
+    html += "<tr><th width='150' bgcolor='#4CAF50'><font color='white'>列名</font></th><th bgcolor='#4CAF50'><font color='white'>内容</font></th></tr>";
+    
+    var record = csvData[currentRecord];
+    var multiLineFields = ["question", "option", "hint"];
+    
+    for (var i = 0; i < headers.length; i++) {
+        html += "<tr>";
+        html += "<th width='150' bgcolor='#4CAF50'><font color='white'>" + escapeHtml(String(headers[i])) + "</font></th>";
+        html += "<td bgcolor='#fafafa'>";
+        
+        var fieldName = String(headers[i]).toLowerCase();
+        var isMultiLine = false;
+        
+        for (var j = 0; j < multiLineFields.length; j++) {
+            if (fieldName === multiLineFields[j]) {
+                isMultiLine = true;
+                break;
+            }
+        }
+        
+        if (isMultiLine) {
+            html += "<textarea id='field_" + i + "' rows='3' style='width:85%; font-size:" + fontSize + "px'>" + escapeHtml(String(record[i] || "")) + "</textarea>";
+        } else {
+            html += "<input type='text' id='field_" + i + "' style='width:40%; font-size:" + fontSize + "px' value='" + escapeHtml(String(record[i] || "")) + "'>";
+        }
+        
+        html += " <button onclick='updateField(" + i + ")'>更新</button>";
+        html += "</td>";
+        html += "</tr>";
+    }
+    
+    html += "</table>";
+    document.getElementById("tableContainer").innerHTML = html;
+    document.getElementById("recordNum").value = currentRecord + 1;
+    
+    applyFontSize();
+    updateNavButtons();
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.innerText = text;
+    return div.innerHTML;
+}
+
+function updateField(fieldIndex) {
+    try {
+        var field = document.getElementById("field_" + fieldIndex);
+        var newValue = field.value;
+        
+        csvData[currentRecord][fieldIndex] = newValue;
+        saveCSV();
+        showMessage("更新しました", "success");
+    } catch(e) {
+        showMessage("更新エラー: " + e.message, "error");
+    }
+}
+
+function saveCSV() {
+    try {
+        var csvFile = scriptPath + "\\quiz.csv";
+        // タブ区切りで保存
+        var content = headers.join("\t") + "\n";
+        
+        for (var i = 0; i < csvData.length; i++) {
+            content += csvData[i].join("\t") + "\n";
+        }
+        
+        var file = fso.CreateTextFile(csvFile, true, false);
+        file.Write(content);
+        file.Close();
+    } catch(e) {
+        showMessage("CSVファイルの保存エラー: " + e.message, "error");
+    }
+}
+
+function prevRecord() {
+    if (currentRecord > 0) {
+        currentRecord--;
+        saveCurrentRecord();
+        displayRecord();
+    }
+}
+
+function nextRecord() {
+    if (currentRecord < csvData.length - 1) {
+        currentRecord++;
+        saveCurrentRecord();
+        displayRecord();
+    }
+}
+
+function jumpToRecord() {
+    var num = parseInt(document.getElementById("recordNum").value);
+    if (isNaN(num) || num < 1 || num > csvData.length) {
+        showMessage("無効なレコード番号です", "error");
+        return;
+    }
+    currentRecord = num - 1;
+    saveCurrentRecord();
+    displayRecord();
+}
+
+function increaseFontSize() {
+    fontSize += 2;
+    applyFontSize();
+    saveFontSize();
+}
+
+function decreaseFontSize() {
+    if (fontSize > 8) {
+        fontSize -= 2;
+        applyFontSize();
+        saveFontSize();
+    }
+}
+
+function applyFontSize() {
+    var inputs = document.getElementsByTagName("input");
+    for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].type === "text" && inputs[i].id.indexOf("field_") === 0) {
+            inputs[i].style.fontSize = fontSize + "px";
+        }
+    }
+    var textareas = document.getElementsByTagName("textarea");
+    for (var j = 0; j < textareas.length; j++) {
+        textareas[j].style.fontSize = fontSize + "px";
+    }
+}
+
+function updateNavButtons() {
+    document.getElementById("prevBtn").disabled = (currentRecord === 0);
+    document.getElementById("nextBtn").disabled = (currentRecord === csvData.length - 1);
+}
+
+function showMessage(msg, type) {
+    var msgDiv = document.getElementById("message");
+    msgDiv.className = type;
+    msgDiv.textContent = msg;
+    setTimeout(function() {
+        msgDiv.textContent = "";
+    }, 3000);
+}
+</script>
+</head>
+<body>
+<div id="container">
+    <div id="tableContainer"></div>
+    <div style="text-align: center">
+        <div>
+            <button onclick="decreaseFontSize()">フォント縮小</button>
+            <button onclick="increaseFontSize()">フォント拡大</button>
+        </div>
+        <div>
+            <button id="prevBtn" onclick="prevRecord()">前へ</button>
+            <button id="nextBtn" onclick="nextRecord()">次へ</button>
+            <input type="text" id="recordNum">
+            <button onclick="jumpToRecord()">ジャンプ</button>
+        </div>
+    </div>
+    <div id="message"></div>
+</div>
+</body>
+</html>

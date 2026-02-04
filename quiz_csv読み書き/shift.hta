@@ -1,0 +1,376 @@
+<html>
+<head>
+<hta:application
+  id="csvEditor"
+  applicationname="CSV Editor"
+  border="thin"
+  caption="yes"
+  showintaskbar="yes"
+  singleinstance="yes"
+  windowstate="normal"
+/>
+
+<meta charset="Shift_JIS">
+<title>CSV Editor</title>
+
+<style>
+  body { font-family: sans-serif; font-size: 16px; }
+  table { border-collapse: collapse; margin-top: 10px; width: 100%; }
+  th, td { border: 1px solid #333; padding: 4px 8px; vertical-align: top; }
+  th { background: #eee; }
+
+  textarea.scalable {
+      width: 98%;
+      resize: none;
+      font-size: 16px;
+      height: 7em;
+  }
+
+  input[type=text] {
+      width: 98%;
+  }
+
+  th:first-child,
+  td:first-child {
+      white-space: nowrap;
+      width: 1%;
+  }
+
+  th:last-child,
+  td:last-child {
+      white-space: nowrap;
+      width: 1%;
+  }
+</style>
+
+<script language="javascript">
+
+// ===============================
+// パス設定
+// ===============================
+var fullPath = unescape(location.pathname);
+if (fullPath.indexOf("file:///") === 0) {
+    fullPath = fullPath.replace("file:///", "");
+}
+var folder = fullPath.replace(/[^\\\/]*$/, "");
+if (folder.charAt(folder.length - 1) !== "\\") folder += "\\";
+
+var csvFile        = folder + "quiz_shift_jis.csv";
+var lastRecordFile = folder + "last_record.txt";
+var fontSizeFile   = folder + "font_size.txt";
+
+// ===============================
+// ADO 接続（Shift-JIS CSV を直接読む）
+// ===============================
+var conn = new ActiveXObject("ADODB.Connection");
+var rs   = new ActiveXObject("ADODB.Recordset");
+
+conn.Open(
+  "Provider=Microsoft.Jet.OLEDB.4.0;" +
+  "Data Source=" + folder + ";" +
+  "Extended Properties=\"text;HDR=Yes;FMT=Delimited\";"
+);
+
+// ===============================
+// HTA互換 getElementsByClassName
+// ===============================
+function getByClass(className) {
+    var result = [];
+    var all = document.getElementsByTagName("*");
+    for (var i = 0; i < all.length; i++) {
+        var c = all[i].className;
+        if (!c) continue;
+        var classes = c.split(/\s+/);
+        for (var j = 0; j < classes.length; j++) {
+            if (classes[j] === className) {
+                result.push(all[i]);
+                break;
+            }
+        }
+    }
+    return result;
+}
+
+// ===============================
+// CSV 読み込み（超シンプル）
+// ===============================
+var headers = [];
+var records = [];
+var currentIndex = 0;
+
+function loadCSV() {
+
+  rs.Open("SELECT * FROM quiz.csv", conn, 1, 3);
+
+  headers = [];
+  for (var i = 0; i < rs.Fields.Count; i++) {
+    headers.push(rs.Fields(i).Name);
+  }
+
+  records = [];
+  rs.MoveFirst();
+  while (!rs.EOF) {
+    var row = {};
+    for (var i = 0; i < headers.length; i++) {
+      row[headers[i]] = rs.Fields(i).Value;
+    }
+    records.push(row);
+    rs.MoveNext();
+  }
+
+  var startIndex = loadLastRecord();
+  showRecord(startIndex);
+}
+
+// ===============================
+// レコード表示
+// ===============================
+function showRecord(index) {
+  if (index < 0 || index >= records.length) return;
+  currentIndex = index;
+
+  saveLastRecord();
+
+  var tbody = document.getElementById("tbody");
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  var rec = records[index];
+
+  for (var i = 0; i < headers.length; i++) {
+    var h = headers[i];
+
+    var tr = document.createElement("tr");
+
+    var td1 = document.createElement("td");
+    td1.innerText = h;
+
+    var td2 = document.createElement("td");
+
+    var input;
+    if (h === "question" || h === "option" || h === "hint") {
+        input = document.createElement("textarea");
+        input.className = "scalable";
+    } else {
+        input = document.createElement("input");
+        input.type = "text";
+    }
+
+    input.value = (rec[h] == null ? "" : rec[h]);
+    input.id = "field_" + h;
+    td2.appendChild(input);
+
+    var td3 = document.createElement("td");
+    var btn = document.createElement("button");
+    btn.innerText = "更新";
+    btn.onclick = (function(fieldName) {
+      return function() { updateField(fieldName); };
+    })(h);
+    td3.appendChild(btn);
+
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
+
+    tbody.appendChild(tr);
+  }
+
+  document.getElementById("recordNum").value = index + 1;
+  document.getElementById("info").innerText = "/ 全 " + records.length + " 件";
+
+  applyFontSize();
+}
+
+// ===============================
+// CSV 保存（Shift-JIS）
+// ===============================
+function saveCsv() {
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+  var ts = fso.OpenTextFile(csvFile, 2, true); // Shift-JIS
+
+  ts.WriteLine(headers.join(","));
+
+  for (var i = 0; i < records.length; i++) {
+    var row = [];
+    for (var j = 0; j < headers.length; j++) {
+      var v = records[i][headers[j]];
+      if (v == null) v = "";
+      row.push(v);
+    }
+    ts.WriteLine(row.join(","));
+  }
+
+  ts.Close();
+}
+
+// ===============================
+// 更新
+// ===============================
+function updateField(fieldName) {
+  var el = document.getElementById("field_" + fieldName);
+  if (!el) return;
+
+  records[currentIndex][fieldName] = el.value;
+
+  saveCsv();
+  loadCSV();
+
+  alert("更新しました");
+}
+
+// ===============================
+// 前へ・次へ
+// ===============================
+function prevRecord() {
+  if (currentIndex > 0) showRecord(currentIndex - 1);
+}
+
+function nextRecord() {
+  if (currentIndex < records.length - 1) showRecord(currentIndex + 1);
+}
+
+// ===============================
+// ジャンプ
+// ===============================
+function jumpRecord() {
+  var n = parseInt(document.getElementById("recordNum").value, 10);
+  if (n >= 1 && n <= records.length) showRecord(n - 1);
+  else alert("1〜" + records.length + " の範囲で入力してください");
+}
+
+// ===============================
+// 検索
+// ===============================
+function searchRecord() {
+    var keyword = document.getElementById("searchBox").value;
+    if (!keyword) return;
+
+    keyword = keyword.toLowerCase();
+
+    for (var i = 0; i < records.length; i++) {
+        for (var j = 0; j < headers.length; j++) {
+            var v = records[i][headers[j]];
+            if (v == null) v = "";
+            v = (v + "").toLowerCase();
+            if (v.indexOf(keyword) >= 0) {
+                showRecord(i);
+                return;
+            }
+        }
+    }
+
+    alert("見つかりませんでした");
+}
+
+// ===============================
+// 最終レコード保存・読み込み
+// ===============================
+function saveLastRecord() {
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var ts = fso.OpenTextFile(lastRecordFile, 2, true);
+    ts.Write(currentIndex);
+    ts.Close();
+}
+
+function loadLastRecord() {
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    if (fso.FileExists(lastRecordFile)) {
+        var ts = fso.OpenTextFile(lastRecordFile, 1, false);
+        var n = parseInt(ts.ReadAll(), 10);
+        ts.Close();
+        if (!isNaN(n) && n >= 0 && n < records.length) return n;
+    }
+    return 0;
+}
+
+// ===============================
+// フォントサイズ（textarea のみ）
+// ===============================
+function loadFontSize() {
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    if (fso.FileExists(fontSizeFile)) {
+        var ts = fso.OpenTextFile(fontSizeFile, 1, false);
+        var size = parseInt(ts.ReadAll(), 10);
+        ts.Close();
+        if (!isNaN(size)) applyFontSize(size);
+    }
+}
+
+function saveFontSize(size) {
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var ts = fso.OpenTextFile(fontSizeFile, 2, true);
+    ts.Write(size);
+    ts.Close();
+}
+
+function applyFontSize(size) {
+    if (!size) {
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        if (fso.FileExists(fontSizeFile)) {
+            var ts = fso.OpenTextFile(fontSizeFile, 1, false);
+            size = parseInt(ts.ReadAll(), 10);
+            ts.Close();
+        } else size = 16;
+    }
+
+    var areas = getByClass("scalable");
+    for (var i = 0; i < areas.length; i++) {
+        areas[i].style.fontSize = size + "px";
+    }
+}
+
+function fontUp() {
+    var areas = getByClass("scalable");
+    var size = areas.length ? parseInt(areas[0].style.fontSize) || 16 : 16;
+    size += 2;
+    applyFontSize(size);
+    saveFontSize(size);
+}
+
+function fontDown() {
+    var areas = getByClass("scalable");
+    var size = areas.length ? parseInt(areas[0].style.fontSize) || 16 : 16;
+    size -= 2;
+    if (size < 8) size = 8;
+    applyFontSize(size);
+    saveFontSize(size);
+}
+
+</script>
+</head>
+
+<body onload="loadFontSize(); loadCSV();">
+
+<h2>CSV レコード編集（Shift-JIS対応・シンプル版）</h2>
+
+<button onclick="prevRecord()">前へ</button>
+<button onclick="nextRecord()">次へ</button>
+
+レコード番号：
+<input type="number" id="recordNum" style="width:60px;">
+<button onclick="jumpRecord()">ジャンプ</button>
+<span id="info"></span>
+
+<br><br>
+
+検索：
+<input type="text" id="searchBox" style="width:200px;">
+<button onclick="searchRecord()">検索</button>
+
+<br><br>
+
+<button onclick="fontUp()">フォント拡大</button>
+<button onclick="fontDown()">フォント縮小</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>列名</th>
+      <th>内容</th>
+      <th>更新</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+</body>
+</html>

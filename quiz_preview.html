@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>CSVレコードビューア</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 4px 8px;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="prevBtn">前へ</button>
+    <button id="nextBtn">次へ</button>
+    <span>
+      レコード番号：
+      <input type="number" id="recordInput" min="1" style="width:80px;">
+      <button id="jumpBtn">ジャンプ</button>
+      <span id="recordInfo"></span>
+    </span>
+    <span style="margin-left:20px;">
+      <button id="fontIncBtn">フォント拡大</button>
+      <button id="fontDecBtn">フォント縮小</button>
+    </span>
+  </div>
+
+  <table id="recordTable">
+    <thead>
+      <tr>
+        <th>列名</th>
+        <th>内容</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const CSV_FILE = 'quiz.csv'; // 同じディレクトリに置くCSVファイル名
+    let headers = [];
+    let records = []; // 各要素は配列（1レコード）
+    let currentIndex = 0; // 0-based
+    const FONT_KEY = 'csvViewerFontSize';
+
+    const tbody = document.querySelector('#recordTable tbody');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
+    const recordInput = document.getElementById('recordInput');
+    const recordInfo = document.getElementById('recordInfo');
+    const fontIncBtn = document.getElementById('fontIncBtn');
+    const fontDecBtn = document.getElementById('fontDecBtn');
+
+    // フォントサイズの読み込み
+    function loadFontSize() {
+      const saved = localStorage.getItem(FONT_KEY);
+      if (saved) {
+        document.body.style.fontSize = saved + 'px';
+      }
+    }
+
+    // フォントサイズの変更
+    function changeFontSize(delta) {
+      const style = window.getComputedStyle(document.body);
+      let size = parseFloat(style.fontSize);
+      size += delta;
+      if (size < 8) size = 8;
+      if (size > 48) size = 48;
+      document.body.style.fontSize = size + 'px';
+      localStorage.setItem(FONT_KEY, size);
+    }
+
+    fontIncBtn.addEventListener('click', () => changeFontSize(2));
+    fontDecBtn.addEventListener('click', () => changeFontSize(-2));
+
+    // CSV読み込み
+    async function loadCSV() {
+      const res = await fetch(CSV_FILE);
+      const text = await res.text();
+      parseCSV(text);
+      if (records.length > 0) {
+        currentIndex = 0;
+        showRecord(currentIndex);
+      }
+    }
+
+    // 非厳密な簡易CSVパーサ（カンマ区切り・改行区切り前提）
+    function parseCSV(text) {
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() !== '');
+      if (lines.length === 0) return;
+      headers = lines[0].split(',');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        records.push(cols);
+      }
+    }
+
+    // レコード表示
+    function showRecord(index) {
+      if (index < 0 || index >= records.length) return;
+      tbody.innerHTML = '';
+      const rec = records[index];
+      headers.forEach((h, i) => {
+        const tr = document.createElement('tr');
+        const tdName = document.createElement('td');
+        const tdValue = document.createElement('td');
+        tdName.textContent = h;
+        tdValue.textContent = rec[i] !== undefined ? rec[i] : '';
+        tr.appendChild(tdName);
+        tr.appendChild(tdValue);
+        tbody.appendChild(tr);
+      });
+      recordInput.value = index + 1;
+      recordInfo.textContent = ` / 全${records.length}件`;
+    }
+
+    // 前へ・次へ
+    prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showRecord(currentIndex);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < records.length - 1) {
+        currentIndex++;
+        showRecord(currentIndex);
+      }
+    });
+
+    // ジャンプ
+    jumpBtn.addEventListener('click', () => {
+      const n = parseInt(recordInput.value, 10);
+      if (!isNaN(n) && n >= 1 && n <= records.length) {
+        currentIndex = n - 1;
+        showRecord(currentIndex);
+      } else {
+        alert('1〜' + records.length + 'の範囲で入力してください。');
+      }
+    });
+
+    // 起動時処理
+    loadFontSize();
+    loadCSV();
+  </script>
+</body>
+</html>

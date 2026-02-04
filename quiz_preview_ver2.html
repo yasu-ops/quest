@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>CSVレコードビューア</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+    }
+    #controls {
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 4px 8px;
+    }
+    th {
+      background-color: #eee;
+    }
+    /* 検索用セルのスタイル */
+    .search-cell {
+      white-space: nowrap;
+      width: 250px;
+    }
+    .search-cell input {
+      width: 120px;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="prevBtn">前へ</button>
+    <button id="nextBtn">次へ</button>
+    <span>
+      レコード番号：
+      <input type="number" id="recordInput" min="1" style="width:80px;">
+      <button id="jumpBtn">ジャンプ</button>
+      <span id="recordInfo"></span>
+    </span>
+    <span style="margin-left:20px;">
+      <button id="fontIncBtn">フォント拡大</button>
+      <button id="fontDecBtn">フォント縮小</button>
+    </span>
+  </div>
+
+  <table id="recordTable">
+    <thead>
+      <tr>
+        <th>列名</th>
+        <th>内容</th>
+        <th>検索 (前方一致)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const CSV_FILE = 'quiz.csv';
+    let headers = [];
+    let records = [];
+    let currentIndex = 0;
+    
+    // ローカルストレージのキー
+    const FONT_KEY = 'csvViewerFontSize';
+    const INDEX_KEY = 'csvViewerCurrentIndex'; // レコード番号保存用キー
+
+    const tbody = document.querySelector('#recordTable tbody');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const jumpBtn = document.getElementById('jumpBtn');
+    const recordInput = document.getElementById('recordInput');
+    const recordInfo = document.getElementById('recordInfo');
+    const fontIncBtn = document.getElementById('fontIncBtn');
+    const fontDecBtn = document.getElementById('fontDecBtn');
+
+    // フォントサイズの読み込み
+    function loadFontSize() {
+      const saved = localStorage.getItem(FONT_KEY);
+      if (saved) {
+        document.body.style.fontSize = saved + 'px';
+      }
+    }
+
+    // フォントサイズの変更
+    function changeFontSize(delta) {
+      const style = window.getComputedStyle(document.body);
+      let size = parseFloat(style.fontSize);
+      size += delta;
+      if (size < 8) size = 8;
+      if (size > 48) size = 48;
+      document.body.style.fontSize = size + 'px';
+      localStorage.setItem(FONT_KEY, size);
+    }
+
+    fontIncBtn.addEventListener('click', () => changeFontSize(2));
+    fontDecBtn.addEventListener('click', () => changeFontSize(-2));
+
+    // CSV読み込み
+    async function loadCSV() {
+      try {
+        const res = await fetch(CSV_FILE);
+        if (!res.ok) throw new Error("CSVファイルの読み込みに失敗しました");
+        const text = await res.text();
+        parseCSV(text);
+        
+        if (records.length > 0) {
+          // 【変更点】起動時にローカルストレージから前回の位置を読み込む
+          const savedIndex = localStorage.getItem(INDEX_KEY);
+          currentIndex = 0; // デフォルトは先頭
+          
+          if (savedIndex !== null) {
+            const parsed = parseInt(savedIndex, 10);
+            // 保存された番号が有効範囲内かチェック
+            if (!isNaN(parsed) && parsed >= 0 && parsed < records.length) {
+              currentIndex = parsed;
+            }
+          }
+          
+          showRecord(currentIndex);
+        } else {
+          alert("レコードがありません");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("CSVファイルの読み込みエラー: " + e.message);
+      }
+    }
+
+    // 非厳密な簡易CSVパーサ
+    function parseCSV(text) {
+      const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim() !== '');
+      if (lines.length === 0) return;
+      headers = lines[0].split(',');
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',');
+        records.push(cols);
+      }
+    }
+
+    // レコード表示
+    function showRecord(index) {
+      if (index < 0 || index >= records.length) return;
+      
+      // 【変更点】表示するたびに現在の位置をローカルストレージに保存
+      localStorage.setItem(INDEX_KEY, index);
+
+      tbody.innerHTML = '';
+      const rec = records[index];
+
+      headers.forEach((h, colIndex) => {
+        const tr = document.createElement('tr');
+        
+        // 1列目: 列名
+        const tdName = document.createElement('td');
+        tdName.textContent = h;
+        
+        // 2列目: 内容
+        const tdValue = document.createElement('td');
+        const cellValue = rec[colIndex] !== undefined ? rec[colIndex] : '';
+        tdValue.textContent = cellValue;
+
+        // 3列目: 検索機能
+        const tdSearch = document.createElement('td');
+        tdSearch.className = 'search-cell';
+        
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.placeholder = '検索語句...';
+        
+        const searchButton = document.createElement('button');
+        searchButton.textContent = '検索';
+        
+        // 検索ボタンクリック時の動作
+        searchButton.onclick = () => {
+          const query = searchInput.value;
+          if (!query) return;
+
+          // 全レコードを走査して、該当カラムがqueryで始まるものを探す
+          const foundIndex = records.findIndex(record => {
+             const val = record[colIndex] !== undefined ? record[colIndex] : '';
+             return val.startsWith(query);
+          });
+
+          if (foundIndex !== -1) {
+            currentIndex = foundIndex;
+            showRecord(currentIndex);
+          } else {
+            alert(`「${h}」が「${query}」で始まるレコードは見つかりませんでした。`);
+          }
+        };
+
+        tdSearch.appendChild(searchInput);
+        tdSearch.appendChild(searchButton);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdValue);
+        tr.appendChild(tdSearch);
+        
+        tbody.appendChild(tr);
+      });
+
+      recordInput.value = index + 1;
+      recordInfo.textContent = ` / 全${records.length}件`;
+    }
+
+    // 前へ・次へ
+    prevBtn.addEventListener('click', () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        showRecord(currentIndex);
+      }
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (currentIndex < records.length - 1) {
+        currentIndex++;
+        showRecord(currentIndex);
+      }
+    });
+
+    // ジャンプ
+    jumpBtn.addEventListener('click', () => {
+      const n = parseInt(recordInput.value, 10);
+      if (!isNaN(n) && n >= 1 && n <= records.length) {
+        currentIndex = n - 1;
+        showRecord(currentIndex);
+      } else {
+        alert('1〜' + records.length + 'の範囲で入力してください。');
+      }
+    });
+
+    // 起動時処理
+    loadFontSize();
+    loadCSV();
+  </script>
+</body>
+</html>

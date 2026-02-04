@@ -4,13 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>勇者のクイズ冒険</title>
-    <!--line font用　ここから-->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!--<link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP&display=swap" rel="stylesheet">-->
-    <link href="https://fonts.googleapis.com/css2?family=LINE+Seed+JP:wght@400;700&display=swap" rel="stylesheet">
-    <!--line font用　ここまで-->
-    <!--<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">-->
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #000;
@@ -20,7 +14,6 @@
             --btn-red: rgba(200, 50, 50, 0.8);
             --btn-blue: rgba(50, 50, 200, 0.8);
             --btn-green: rgba(50, 150, 50, 0.8);
-            --btn-gray: rgba(100, 100, 100, 0.8);
         }
 
         body {
@@ -28,8 +21,7 @@
             padding: 0;
             background-color: #222;
             color: var(--text-color);
-            /* DotGothic16 --> LINE Seed JP 2025/1/24 他に７カ所程度 */
-            font-family: 'LINE Seed JP', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -69,16 +61,6 @@
         }
 
         /* --- タイトル画面（フロア選択） --- */
-        
-        /* 画像のスタイル設定 */
-        #title-logo {
-            max-width: 80%;       /* 横幅が画面からはみ出さないように制限 */
-            max-height: 180px;    /* 高さが大きくなりすぎないように制限（お好みで数値を変えてください） */
-            height: auto;         /* アスペクト比を維持 */
-            margin-bottom: 15px;  /* 下のタイトル文字との隙間 */
-            display: block;
-        }
-
         #title-screen {
             position: absolute;
             top: 0;
@@ -93,14 +75,6 @@
             align-items: center;
             padding: 20px;
             box-sizing: border-box;
-        }
-
-        .title-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
         }
 
         #title-message {
@@ -185,7 +159,7 @@
             border-radius: 4px;
             padding: 6px 16px;
             color: #fff;
-            font-family: 'LINE Seed JP', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             font-size: 14px;
             cursor: pointer;
             user-select: none;
@@ -272,7 +246,7 @@
             border-radius: 4px;
             padding: 6px 16px;
             color: #fff;
-            font-family: 'LINE Seed JP', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             font-size: 14px;
             cursor: pointer;
             user-select: none;
@@ -282,7 +256,6 @@
         
         #quiz-transfer-btn { background: var(--btn-blue); }
         #quiz-return-btn { background: var(--btn-green); }
-        #quiz-later-btn { background: var(--btn-gray); }
 
         .cursor-indicator {
             animation: blink 0.8s infinite;
@@ -353,7 +326,7 @@
             align-items: center;
             z-index: 100;
             color: #fff;
-            font-family: 'LINE Seed JP', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
         }
 
         #loading-message {
@@ -363,78 +336,25 @@
             white-space: pre-wrap;
         } 
         
-        /* --- メニューボタン群 --- */
-        .bottom-right-btns {
+        /* --- メニューボタン --- */
+        #menu-btn {
             position: absolute;
             bottom: 15px; /* 右下隅 */
             right: 15px;
-            display: flex;
-            gap: 10px;
-            z-index: 30; /* コントローラーより上 */
-        }
-
-        .game-menu-btn {
             background: rgba(50, 50, 200, 0.8);
             border: 2px solid #fff;
             border-radius: 4px;
             padding: 8px 12px;
             color: #fff;
-            font-family: 'LINE Seed JP', sans-serif;
+            font-family: 'DotGothic16', sans-serif;
             font-size: 14px;
             cursor: pointer;
+            z-index: 30; /* コントローラーより上 */
             user-select: none;
             display: none; /* 初期は非表示 */
         }
-        .game-menu-btn:hover { background: rgba(80, 80, 220, 0.9); }
-        .game-menu-btn:active { background: rgba(100, 100, 255, 1); }
-
-        /* 説明用ボタンのスタイル（少し色を変える） */
-        .info-btn {
-            background: rgba(100, 100, 100, 0.8);
-        }
-        .info-btn:hover { background: rgba(120, 120, 120, 0.9); }
-
-        /* 使用上の注意ボタン（タイトル画面用） */
-        #caution-btn {
-            background: rgba(200, 50, 50, 0.8);
-            border: 2px solid #fff;
-            border-radius: 4px;
-            padding: 4px 8px;
-            color: #fff;
-            font-family: 'LINE Seed JP', sans-serif;
-            font-size: 12px;
-            cursor: pointer;
-            user-select: none;
-        }
-        #caution-btn:hover { background: rgba(220, 80, 80, 0.9); }
-
-        /* 情報表示モーダル */
-        #info-modal {
-            z-index: 200; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
-            width: 85%; 
-            max-width: 450px; 
-            text-align: left;
-            display: none;
-            flex-direction: column;
-        }
-        #info-modal-text {
-            margin-bottom: 20px; 
-            white-space: pre-wrap; 
-            line-height: 1.6;
-        }
-        #info-modal-close-btn {
-            align-self: center;
-            background: var(--btn-red); 
-            color: #fff; 
-            padding: 6px 20px; 
-            cursor: pointer; 
-            border: 2px solid #fff;
-            border-radius: 4px;
-            font-family: 'LINE Seed JP', sans-serif;
-        }
+        #menu-btn:hover { background: rgba(80, 80, 220, 0.9); }
+        #menu-btn:active { background: rgba(100, 100, 255, 1); }
 
     </style>
 </head>
@@ -448,13 +368,7 @@
     
     <!-- タイトル画面 / レベル選択 -->
     <div id="title-screen" style="display:none;">
-
-        <img src="genin.png" id="title-logo" alt="タイトル画像">
-
-        <div class="title-header">
-            <h2 style="color:var(--accent-color); font-size: 24px; margin:0;">言文クエスト</h2>
-            <div id="caution-btn">使用上の注意</div>
-        </div>
+        <h2 style="color:var(--accent-color); font-size: 24px;">言文クエスト</h2>
         <div id="title-message">攻略するフロアを選んでください。<br>（★:クリア済 / 数字:残り敵数）</div>
         <ul id="level-list">
             <!-- JSで生成 -->
@@ -463,18 +377,8 @@
 
     <canvas id="gameCanvas"></canvas>
     
-    <!-- ゲーム内メニュー・情報ボタン -->
-    <div class="bottom-right-btns">
-        <div id="training-help-btn" class="game-menu-btn info-btn">操作方法</div>
-        <div id="floor-info-btn" class="game-menu-btn info-btn">このフロアについて</div>
-        <div id="menu-btn" class="game-menu-btn">メニューへ</div>
-    </div>
-
-    <!-- 情報表示用モーダル -->
-    <div id="info-modal" class="ui-box">
-        <div id="info-modal-text"></div>
-        <div id="info-modal-close-btn">閉じる</div>
-    </div>
+    <!-- メニューボタン -->
+    <div id="menu-btn">メニューへ</div>
 
     <div id="message-window" class="ui-box">
         <div id="message-text"></div>
@@ -487,9 +391,8 @@
         <ul id="quiz-choices"></ul>
         <div class="quiz-btn-group">
             <div id="quiz-ok-btn" class="quiz-action-btn">OK</div>
-            <div id="quiz-later-btn" class="quiz-action-btn">あとで</div>
-            <div id="quiz-transfer-btn" class="quiz-action-btn">特訓行き</div>
-            <div id="quiz-return-btn" class="quiz-action-btn">元のフロアに戻す</div>
+            <div id="quiz-transfer-btn" class="quiz-action-btn">転送</div>
+            <div id="quiz-return-btn" class="quiz-action-btn">戻す</div>
         </div>
     </div>
 
@@ -524,7 +427,7 @@
         'npc2': '#ff9800', // オレンジ
         'npc3': '#ffeb3b', // 黄(金)
         'npc4': '#4caf50', // 緑
-        'npc5': '#212121', // 黒
+        'npc5': '#2196f3', // 青
         'npc6': '#9c27b0', // 紫
         'npc7': '#e91e63'  // ピンク
     };
@@ -544,7 +447,7 @@
         // MAP 0: 古語の間
         {
             id: 0,
-            name: "古語",
+            name: "古語の間",
             playerStart: { x: 2, y: 13 },
             layout: [
                 [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
@@ -570,7 +473,7 @@
         // MAP 1: 読みの間
         {
             id: 1,
-            name: "読み",
+            name: "読みの間",
             playerStart: { x: 9, y: 14 },
             layout: [
                 [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
@@ -596,7 +499,7 @@
         // MAP 2: 旅の始まりの間
         {
             id: 2,
-            name: "旅開始",
+            name: "旅の始まりの間",
             playerStart: { x: 9, y: 14 },
             layout: [
                 [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
@@ -622,7 +525,7 @@
         // MAP 3: 八橋の間
         {
             id: 3,
-            name: "八橋",
+            name: "八橋の間",
             playerStart: { x: 2, y: 14 },
             layout: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
@@ -648,7 +551,7 @@
         // MAP 4: 宇津の山の間
         {
             id: 4,
-            name: "宇津の山",
+            name: "宇津の山の間",
             playerStart: { x: 2, y: 14 },
             layout: [
                 [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
@@ -674,7 +577,7 @@
         // MAP 5: 富士山の間
         {
             id: 5,
-            name: "富士山",
+            name: "富士山の間",
             playerStart: { x: 8, y: 14 },
             layout: [
                 [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
@@ -700,7 +603,7 @@
         // MAP 6: 隅田川の間
         {
             id: 6,
-            name: "隅田川[古文は試験範囲外]",
+            name: "隅田川の間",
             playerStart: { x: 9, y: 14 },
             layout: [
                 [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
@@ -723,10 +626,10 @@
             entities: []
         },
 
-        // MAP 7: 特訓会場（広間）
+        // MAP 7: トレーニングルーム（広間）
         {
             id: 7,
-            name: "特訓会場",
+            name: "トレーニングルーム",
             playerStart: { x: 9, y: 14 },
             layout: [
                 [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
@@ -776,27 +679,15 @@
     const quizOkBtn = document.getElementById('quiz-ok-btn');
     const quizTransferBtn = document.getElementById('quiz-transfer-btn');
     const quizReturnBtn = document.getElementById('quiz-return-btn');
-    const quizLaterBtn = document.getElementById('quiz-later-btn');
-    
-    // メニュー・情報ボタン
     const menuBtn = document.getElementById('menu-btn');
-    const cautionBtn = document.getElementById('caution-btn');
-    const trainingHelpBtn = document.getElementById('training-help-btn');
-    const floorInfoBtn = document.getElementById('floor-info-btn');
     
-    // モーダル
-    const infoModal = document.getElementById('info-modal');
-    const infoModalText = document.getElementById('info-modal-text');
-    const infoModalCloseBtn = document.getElementById('info-modal-close-btn');
-
     // タイトル画面関連
     const titleScreen = document.getElementById('title-screen');
     const levelList = document.getElementById('level-list');
     let titleCursorIndex = 0;
     
     // データ管理
-    // { mapId: { cleared: [ids], transferred: [ids] } }
-    let savedProgress = {}; 
+    let savedProgress = {}; // { mapId: [list_of_removed_npc_indices] }
     let savedTrainingData = []; // [ {sourceMapId, sourceIndex, sprite, question, options, correct, hint, status} ]
 
     let currentChoiceIndex = -1; 
@@ -825,13 +716,6 @@
         if (savedProg) {
             try {
                 savedProgress = JSON.parse(savedProg);
-                // データ構造のマイグレーション/チェック（配列からオブジェクトへ）
-                Object.keys(savedProgress).forEach(key => {
-                    if (Array.isArray(savedProgress[key])) {
-                        // 旧形式（配列）の場合は一旦クリア（整合性のため）
-                        savedProgress[key] = { cleared: [], transferred: [] };
-                    }
-                });
             } catch (e) {
                 console.error("Save data parse error (progress)", e);
                 savedProgress = {};
@@ -854,24 +738,13 @@
         }
     }
 
-    // 正解として記録
-    function saveClearedProgress(mapId, npcIndex) {
+    // 進行状況の保存（通常マップで敵を倒した/転送した）
+    function saveMapProgress(mapId, npcIndex) {
         if (!savedProgress[mapId]) {
-            savedProgress[mapId] = { cleared: [], transferred: [] };
+            savedProgress[mapId] = [];
         }
-        if (!savedProgress[mapId].cleared.includes(npcIndex)) {
-            savedProgress[mapId].cleared.push(npcIndex);
-            localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
-        }
-    }
-
-    // 特訓行きとして記録
-    function saveTransferredProgress(mapId, npcIndex) {
-        if (!savedProgress[mapId]) {
-            savedProgress[mapId] = { cleared: [], transferred: [] };
-        }
-        if (!savedProgress[mapId].transferred.includes(npcIndex)) {
-            savedProgress[mapId].transferred.push(npcIndex);
+        if (!savedProgress[mapId].includes(npcIndex)) {
+            savedProgress[mapId].push(npcIndex);
             localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
         }
     }
@@ -883,58 +756,47 @@
 
     // トレーニングデータから特定のNPCを削除（戻す）
     function removeNPCFromTraining(sourceMapId, sourceIndex) {
-        // 1. トレーニングデータから削除
         savedTrainingData = savedTrainingData.filter(npc => 
             !(npc.sourceMapId === sourceMapId && npc.sourceIndex === sourceIndex)
         );
         saveTrainingDataToStorage();
 
-        // 2. 元のマップの「特訓行き」記録から削除（復活させる）
-        if (savedProgress[sourceMapId] && savedProgress[sourceMapId].transferred) {
-            savedProgress[sourceMapId].transferred = savedProgress[sourceMapId].transferred.filter(id => id !== sourceIndex);
+        // 元のマップの進行状況からも削除（復活させる）
+        if (savedProgress[sourceMapId]) {
+            savedProgress[sourceMapId] = savedProgress[sourceMapId].filter(id => id !== sourceIndex);
             localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
         }
     }
     
     // 特定のマップデータをリセットする関数
     function resetMapData(mapId) {
-        // 特訓会場は別ロジック
-        if (mapId === 7) return; 
+        // 通常マップのリセット処理
+        if (mapId === 7) return; // トレーニングルームは別ロジック
 
+        // 1. このフロアのlocalStorage進行状況を削除
         if (savedProgress[mapId]) {
-            // A: 正答済みIDをすべて消す
-            savedProgress[mapId].cleared = [];
-
-            // B: 特訓行きとして記録されていたNPCについて
-            const transferredIDs = savedProgress[mapId].transferred || [];
-            
-            // B-1: 特訓会場の方に記録されていた情報を消す
-            savedTrainingData = savedTrainingData.filter(npc => 
-                !(npc.sourceMapId === mapId && transferredIDs.includes(npc.sourceIndex))
-            );
-            saveTrainingDataToStorage();
-
-            // B-2: そのフロアの記録エリアに、特訓行きとして記録されていたIDを消す
-            savedProgress[mapId].transferred = [];
-            
+            delete savedProgress[mapId];
             localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
         }
+        
+        // 2. トレーニングルームにある、このフロア出身のNPCを削除
+        savedTrainingData = savedTrainingData.filter(npc => npc.sourceMapId !== mapId);
+        saveTrainingDataToStorage();
         
         showTitleScreen();
     }
 
-    // 特訓会場のリセット
+    // トレーニングルームのリセット
     function resetTrainingRoom() {
-        // 特訓会場にいるNPCについて
+        // 1. 全てのトレーニングNPCを元のマップに「戻す」（＝元のマップのremovedリストから消す）
         savedTrainingData.forEach(npc => {
-            if (savedProgress[npc.sourceMapId] && savedProgress[npc.sourceMapId].transferred) {
-                // A: そのNPCが所属しているフロアで、特訓行きとして記録されていたIDを消す
-                savedProgress[npc.sourceMapId].transferred = savedProgress[npc.sourceMapId].transferred.filter(id => id !== npc.sourceIndex);
+            if (savedProgress[npc.sourceMapId]) {
+                savedProgress[npc.sourceMapId] = savedProgress[npc.sourceMapId].filter(id => id !== npc.sourceIndex);
             }
         });
         localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
 
-        // B: そのNPCの、特訓会場に記録されていた情報を消す（全削除）
+        // 2. トレーニングデータを全削除
         savedTrainingData = [];
         saveTrainingDataToStorage();
         
@@ -1022,6 +884,8 @@
             if (!originalNPCsByMap[npc.map_id]) {
                 originalNPCsByMap[npc.map_id] = [];
             }
+            // CSV全体のインデックスではなく、マップごとのインデックスを管理するため
+            // 一度配列に入れてから再処理する
         });
 
         // 配列に入れなおす
@@ -1042,11 +906,7 @@
         confettiParticles = [];
         titleScreen.style.display = 'flex';
         levelList.innerHTML = '';
-        
-        // ボタン表示リセット
         menuBtn.style.display = 'none';
-        floorInfoBtn.style.display = 'none';
-        trainingHelpBtn.style.display = 'none';
         
         loadSaveData();
 
@@ -1062,35 +922,24 @@
             let showReset = false;
 
             if (map.id === 7) {
-                // 特訓会場の場合
+                // トレーニングルームの場合
                 const count = savedTrainingData.length;
-                countText = `（${count}）`;
+                countText = `（現在${count}体）`;
                 showReset = (count > 0);
             } else {
                 // 通常マップの場合
                 const total = (originalNPCsByMap[map.id] || []).length;
+                const removed = (savedProgress[map.id] || []).length;
+                const remaining = Math.max(0, total - removed);
                 
-                const progressObj = savedProgress[map.id] || { cleared: [], transferred: [] };
-                const clearedCount = progressObj.cleared.length;
-                const transferredCount = progressObj.transferred.length;
-                
-                const remaining = total - clearedCount;
-                
-                // 表示ロジック
-                if (clearedCount === 0 && transferredCount === 0) {
-                    // 正答も特訓もいない場合は表示なし
-                } else if (remaining === 0) {
+                if (remaining === 0 && total > 0) {
                     label += ' ★';
-                } else {
-                    if (transferredCount > 0) {
-                        countText = `（残${remaining} うち特${transferredCount}）`;
-                    } else {
-                        countText = `（残${remaining}）`;
-                    }
+                } else if (total > 0) {
+                    countText = `（残り${remaining}体）`;
                 }
                 
-                // リセットボタン表示条件: 誰か倒している or 特訓に送っている
-                if (clearedCount > 0 || transferredCount > 0) {
+                // リセットボタン表示条件: 誰か倒している or トレーニングに送っている
+                if (removed > 0) {
                     showReset = true;
                 }
             }
@@ -1178,17 +1027,12 @@
         // NPC生成ロジック
         currentMap.entities = [];
         
-        // ボタン表示の切り替え
         if (currentMapId === 7) {
-            // 特訓会場の場合
+            // トレーニングルームの場合：storageから生成
             generateTrainingNPCs();
-            floorInfoBtn.style.display = 'block';
-            trainingHelpBtn.style.display = 'none';
         } else {
-            // 通常マップの場合
+            // 通常マップの場合：CSVデータから生成（倒したやつは除外）
             generateNormalMapNPCs(currentMapId);
-            floorInfoBtn.style.display = 'none';
-            trainingHelpBtn.style.display = 'block';
         }
 
         entities = currentMap.entities;
@@ -1196,15 +1040,17 @@
         player.y = currentMap.playerStart.y;
         player.direction = 'down';
         currentState = STATE.EXPLORING;
+        
+        // メッセージ表示は削除しました
     }
 
     function generateNormalMapNPCs(mapId) {
         const npcsData = originalNPCsByMap[mapId] || [];
-        const progressObj = savedProgress[mapId] || { cleared: [], transferred: [] };
+        const removedList = savedProgress[mapId] || [];
 
         npcsData.forEach((npcData, index) => {
-            // 正答済み、または特訓行きのNPCは表示しない
-            if (progressObj.cleared.includes(index) || progressObj.transferred.includes(index)) return;
+            // 既に倒した（または転送された）NPCは表示しない
+            if (removedList.includes(index)) return;
 
             const color = NPC_COLORS[npcData.sprite.toLowerCase()] || '#9e9e9e';
             const sprite = { color: color, type: 'villager' };
@@ -1242,7 +1088,7 @@
                 const isCorrect = (data.status === 'correct');
                 
                 currentMap.entities.push({
-                    // 特訓会場では元のID情報を保持する
+                    // トレーニングルームでは元のID情報を保持する
                     sourceMapId: data.sourceMapId,
                     sourceIndex: data.sourceIndex,
                     
@@ -1300,52 +1146,10 @@
     let lastKeyTime = 0;
     const keyRepeatRate = 150;
 
-    // --- メニュー・情報ボタンイベント ---
+    // メニューボタンイベント
     menuBtn.addEventListener('click', () => {
+        // 問いかけなしでタイトル画面へ戻る
         showTitleScreen();
-    });
-
-    // モーダル表示関数
-    function openInfoModal(text) {
-        infoModalText.innerText = text;
-        infoModal.style.display = 'flex';
-    }
-
-    function closeInfoModal() {
-        infoModal.style.display = 'none';
-    }
-
-    // 閉じるボタン
-    infoModalCloseBtn.addEventListener('click', closeInfoModal);
-
-    // 1. 使用上の注意ボタン
-    cautionBtn.addEventListener('click', () => {
-        openInfoModal(
-            "●ゲームを禁止されている時間にはやらないこと。\n" +
-            "●iPadで物理キーボードを使う場合は、設定＞アクセシビリティ＞身体機能および操作＞キーボード＞「フルキーボードアクセス」をオフにする。\n" +
-            "●戦績は端末に保存される。\n" +
-            "●特定のフロアの戦績を削除したい場合はフロア名の右のリセット（戦績がある場合のみ表示）を押す。"             
-        );
-    });
-
-    // 2. 操作方法
-    trainingHelpBtn.addEventListener('click', () => {
-        openInfoModal(
-            "タッチ操作の場合\n　コマの移動＝左側の十字キー\n　回答＝選択肢をタッチ→OKをタッチ\n" +
-            "物理キーボードの場合\n　コマの移動＝上下左右矢印キー\n　回答＝上下矢印キーで選択→Enterキーで確定\n　[回答時、選択肢上にマウスカーソルを置かない]\n　その他のボタン＝タッチ操作か、マウスで。\n\n" +
-            "●iPadで物理キーボードを使う場合は、設定＞アクセシビリティ＞身体機能および操作＞キーボード＞「フルキーボードアクセス」をオフにする。\n" +
-            "●「特訓行き」ボタンを押すとその問題は特訓会場に転送され、そこで繰り返し練習することができる。"
-        );
-    });
-
-    // 3. このフロアについて
-    floorInfoBtn.addEventListener('click', () => {
-        openInfoModal(
-            "◎各フロアで「特訓行き」を押した問題がここに集まっている。\n" +
-            "◎正答していない問題は点滅を続ける。\n" +
-            "◎正答後も問題は消えずに残り、繰り返し練習ができる。\n" +
-            "◎問題を元のフロアに戻したいときは「元のフロアに戻す」を押す。"
-        );
     });
 
     messageOkBtn.addEventListener('click', () => {
@@ -1363,24 +1167,17 @@
         }
     });
 
-    // 特訓行きボタン
+    // 転送ボタン
     quizTransferBtn.addEventListener('click', () => {
         if (currentState === STATE.CHOICE) {
             transferCurrentNPC();
         }
     });
 
-    // 元のフロアに戻すボタン
+    // 戻すボタン
     quizReturnBtn.addEventListener('click', () => {
         if (currentState === STATE.CHOICE) {
             returnCurrentNPC();
-        }
-    });
-
-    // あとでボタン
-    quizLaterBtn.addEventListener('click', () => {
-        if (currentState === STATE.CHOICE) {
-            handleLater();
         }
     });
 
@@ -1418,8 +1215,6 @@
     });
 
     function handleInput(code) {
-        if (infoModal.style.display === 'flex') return; // モーダル表示中は操作無効
-
         if (STATE.TITLE === currentState) {
             handleTitleInput(code);
         } else if (STATE.EXPLORING === currentState) {
@@ -1534,8 +1329,6 @@
     }
 
     function movePlayer() {
-        if (infoModal.style.display === 'flex') return; // モーダル中は移動不可
-
         const now = Date.now();
         if (now - lastKeyTime < keyRepeatRate) return;
 
@@ -1621,7 +1414,6 @@
         quizOkBtn.style.display = 'none';
         quizTransferBtn.style.display = 'none';
         quizReturnBtn.style.display = 'none';
-        quizLaterBtn.style.display = 'none';
         currentState = STATE.EXPLORING;
         textCallback = null;
     }
@@ -1653,11 +1445,10 @@
         renderChoices();
         
         quizOkBtn.style.display = 'block';
-        quizLaterBtn.style.display = 'block';
 
         // 転送/戻すボタンの表示制御
         if (currentMapId === 7) {
-            // 特訓会場
+            // トレーニングルーム
             quizTransferBtn.style.display = 'none';
             quizReturnBtn.style.display = 'block';
         } else {
@@ -1667,14 +1458,17 @@
         }
     }
 
-    // NPC転送処理（通常マップ -> 特訓会場）
+    // NPC転送処理（通常マップ -> トレーニング）
     function transferCurrentNPC() {
         if (!currentQuizEntity) return;
 
-        // 1. 通常マップの特訓行きリストに追加
-        saveTransferredProgress(currentMapId, currentQuizEntity.originalIndex);
+        // 1. 通常マップの記録リストに追加して非表示にする
+        saveMapProgress(currentMapId, currentQuizEntity.originalIndex);
 
         // 2. トレーニングデータに追加
+        // 元のCSVデータを参照して、スプライト名を取得する必要があるが、
+        // 簡易的に色から推測するか、生成時に持たせておくのがベター。
+        // ここでは generateNormalMapNPCs で originalIndex があるので、そこから参照する
         const originalData = originalNPCsByMap[currentMapId][currentQuizEntity.originalIndex];
 
         savedTrainingData.push({
@@ -1692,12 +1486,10 @@
         closeQuizWindow();
         
         // 点滅後消滅
-        blinkAndRemoveNPC(currentQuizEntity, () => {
-            checkMapClear();
-        });
+        blinkAndRemoveNPC(currentQuizEntity, null);
     }
 
-    // NPC戻す処理（特訓会場 -> 通常マップ）
+    // NPC戻す処理（トレーニング -> 通常マップ）
     function returnCurrentNPC() {
         if (!currentQuizEntity) return;
 
@@ -1707,18 +1499,7 @@
         closeQuizWindow();
 
         // 点滅後消滅
-        blinkAndRemoveNPC(currentQuizEntity, () => {
-            checkMapClear();
-        });
-    
-    }
-
-    // 「あとで」ボタンの処理
-    function handleLater() {
-        closeQuizWindow();
-        displayText("「また、来いよ！」", () => {
-            pushPlayerBack();
-        });
+        blinkAndRemoveNPC(currentQuizEntity, null);
     }
 
     function renderChoices() {
@@ -1740,6 +1521,10 @@
             };
             
             li.onmouseover = () => {
+                // マウス操作時はスクロールさせないほうが自然なため、
+                // マウスイベント内では scrollIntoView を呼ばないようにする工夫も可能ですが、
+                // 今回は「block: 'nearest'」を使うことで、すでに画面内にある場合は
+                // ガタつかないため、そのまま再描画します。
                 if (currentState === STATE.CHOICE) {
                     currentChoiceIndex = index;
                     renderChoices(); 
@@ -1771,22 +1556,18 @@
             quizChoices.appendChild(li);
         }
 
-        // スクロール位置の自動調整
+        // --- 【追加修正部分】スクロール位置の自動調整 ---
+        // 選択中のインデックスに対応する要素があれば、見える位置までスクロールする
         if (currentChoiceIndex >= 0 && currentChoiceIndex < quizChoices.children.length) {
             const selectedElement = quizChoices.children[currentChoiceIndex];
+            // block: 'nearest' は、要素がすでに画面内なら何もしない、
+            // 画面外なら、一番近い端（上か下）に寄せて表示してくれる便利なオプションです
             selectedElement.scrollIntoView({ block: 'nearest', behavior: 'auto' });
         }
     }
     
     function confirmChoice() {
         if (currentChoiceIndex === -1) return;
-
-        // --- 追加: システム選択肢（召喚確認など）の場合の処理 ---
-        if (systemChoiceCallback) {
-            systemChoiceCallback(currentChoiceIndex);
-            return;
-        }
-        // ----------------------------------------------------
 
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
         const showHintBtn = hasHint && !systemChoiceCallback;
@@ -1811,7 +1592,7 @@
         closeQuizWindow();
 
         if (currentMapId === 7) {
-            // --- 特訓会場での正解 ---
+            // --- トレーニングルームでの正解 ---
             // 1. 点滅しなくなる
             currentQuizEntity.blinking = false;
             
@@ -1825,17 +1606,32 @@
                 saveTrainingDataToStorage();
             }
 
-            // 3. 正解メッセージの後、プレイヤーが離れる動き（不正解時と同様）
-            displayText("「正解です!」", () => {
-                pushPlayerBack();
-            });
+            // 3. 離れたところに飛ばす（ワープ）
+            // プレイヤーと重ならない安全な場所を簡易的に探す
+            let newPos = null;
+            for(let k=0; k<50; k++){
+                const cand = findRandomWalkablePosition(currentMap);
+                if(cand){
+                    // 現在のプレイヤー位置と重なっていたらリトライ
+                    if(cand.x === player.x && cand.y === player.y) continue;
+                    newPos = cand;
+                    break;
+                }
+            }
+
+            if(newPos) {
+                currentQuizEntity.x = newPos.x;
+                currentQuizEntity.y = newPos.y;
+            }
+
+            currentState = STATE.EXPLORING;
 
         } else {
             // --- 通常マップでの正解 ---
             currentQuizEntity.quizCompleted = true;
             
             // 1. 記録
-            saveClearedProgress(currentMapId, currentQuizEntity.originalIndex);
+            saveMapProgress(currentMapId, currentQuizEntity.originalIndex);
 
             // 2. 点滅後、姿を消す
             blinkAndRemoveNPC(currentQuizEntity, () => {
@@ -1847,7 +1643,7 @@
     function handleIncorrectAnswer() {
         closeQuizWindow();
 
-        // 特訓会場の場合は不正解ステータスに戻す
+        // トレーニングルームの場合は不正解ステータスに戻す
         if (currentMapId === 7) {
             currentQuizEntity.blinking = true;
             
@@ -1872,7 +1668,6 @@
         quizOkBtn.style.display = 'none';
         quizTransferBtn.style.display = 'none';
         quizReturnBtn.style.display = 'none';
-        quizLaterBtn.style.display = 'none';
     }
 
     function showHint() {
@@ -1883,7 +1678,6 @@
         quizOkBtn.style.display = 'block';
         quizTransferBtn.style.display = 'none';
         quizReturnBtn.style.display = 'none';
-        quizLaterBtn.style.display = 'none';
     }
 
     function returnToQuizFromHint() {
@@ -1893,7 +1687,6 @@
         renderChoices();
         
         quizOkBtn.style.display = 'block';
-        quizLaterBtn.style.display = 'block';
         if (currentMapId === 7) {
             quizReturnBtn.style.display = 'block';
         } else {
@@ -1919,109 +1712,26 @@
     }
 
     function checkMapClear() {
-        // 通常マップの場合のみクリア判定（特訓会場はクリア概念がない）
+        // 通常マップの場合のみクリア判定（トレーニングはクリア概念がない）
         if (currentMapId === 7) {
             closeDialogue();
             return;
         }
 
-        // 画面上のエンティティがすべて完了（クイズ済み or 削除済み）しているか確認
         const allCompleted = entities.every(e => !e.quiz || e.quizCompleted || e.removed);
         
         if (allCompleted) {
-            // 現在のマップにおける「特訓行き」の数を取得
-            const progressObj = savedProgress[currentMapId] || { cleared: [], transferred: [] };
-            const transferredCount = progressObj.transferred.length;
-
-            if (transferredCount > 0) {
-                // (2) 特訓行きが1体以上いる場合 -> 召喚確認へ
-                promptSummon(transferredCount);
-            } else {
-                // (1) 特訓行きが0の場合 -> 完全クリア（従来通り）
-                createConfetti();
-                displayText(`このフロアをクリアした!\nメニューに戻ります。`, () => {
-                    closeDialogue();
-                    setTimeout(() => {
-                        showTitleScreen();
-                    }, 500);
-                });
-            }
+            createConfetti();
+            displayText(`このフロアをクリアした!\nメニューに戻ります。`, () => {
+                closeDialogue();
+                setTimeout(() => {
+                    showTitleScreen();
+                }, 500);
+            });
         } else {
             closeDialogue();
         }
     }
-
-// 特訓行きNPCを召喚するか尋ねるシステムダイアログ
-    function promptSummon(count) {
-        currentState = STATE.CHOICE;
-        currentChoiceIndex = 0;
-
-        // 既存のクイズウィンドウの仕組みを流用するためのダミーデータ作成
-        const msg = `このフロアに表示されていた問題はすべて倒しましたが、特訓会場行きになっている問題が${count}体、残っています。\n彼らをこのフロアに召喚して戦いますか。`;
-        
-        currentQuizData = {
-            question: msg,
-            options: ["召喚する", "召喚しない"],
-            correct: -1, // 正解判定には使わない
-            hint: ""
-        };
-        currentQuizEntity = null;
-
-        // システム選択肢用のコールバックを設定
-        systemChoiceCallback = (index) => {
-            // 処理が終わったらコールバックを解除
-            systemChoiceCallback = null;
-            closeQuizWindow();
-
-            if (index === 0) {
-                // 「召喚する」
-                executeSummon();
-            } else {
-                // 「召喚しない」 -> メッセージを消して終了
-                closeDialogue();
-                /*
-                displayText("「また後でな」", () => {
-                    closeDialogue();
-                });
-                */
-            }
-        };
-
-        // UI表示設定
-        quizWindow.style.display = 'flex';
-        quizQuestion.innerHTML = currentQuizData.question.replace(/\n/g, '<br>');
-        quizQuestion.scrollTop = 0;
-        renderChoices(); // ダミーデータのoptions("召喚する", "召喚しない")を描画
-
-        // ボタン制御（OKボタン以外は隠す）
-        quizOkBtn.style.display = 'block';
-        quizTransferBtn.style.display = 'none';
-        quizReturnBtn.style.display = 'none';
-        quizLaterBtn.style.display = 'none';
-    }
-
-    // 召喚実行処理
-    function executeSummon() {
-        // A: 特訓会場の記憶領域から、このマップ(currentMapId)に所属するNPCを削除
-        savedTrainingData = savedTrainingData.filter(npc => npc.sourceMapId !== currentMapId);
-        saveTrainingDataToStorage();
-
-        // B: このフロアの「特訓行き」記録を全削除
-        if (savedProgress[currentMapId]) {
-            savedProgress[currentMapId].transferred = [];
-            localStorage.setItem('heroQuizProgress', JSON.stringify(savedProgress));
-        }
-
-        // C: このフロアを再読込
-        displayText("特訓会場から問題を呼び戻しました!", () => {
-            closeDialogue();
-            // 少し間をおいて再開
-            setTimeout(() => {
-                startGame(currentMapId);
-            }, 300);
-        });
-    }
-
 
     function draw() {
         ctx.fillStyle = '#000';
