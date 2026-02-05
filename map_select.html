@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>勇者のクイズ冒険</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000;
+            --text-color: #fff;
+            --border-color: #fff;
+            --accent-color: #f8b500;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222;
+            color: var(--text-color);
+            font-family: 'DotGothic16', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            max-height: calc(100dvh - 30px);
+            aspect-ratio: 3/4;
+            background-color: var(--bg-color);
+            border: 2px solid #444;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+            margin: auto;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .ui-box {
+            position: absolute;
+            background: #000;
+            border: 4px double var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            box-sizing: border-box;
+            display: none;
+        }
+
+        /* --- タイトル画面（フロア選択） --- */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #title-message {
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        #level-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            max-width: 300px;
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 2px solid #444;
+        }
+
+        .level-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #333;
+            transition: background 0.2s;
+        }
+
+        .level-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .level-item.selected {
+            background-color: rgba(248, 181, 0, 0.3);
+            border-left: 4px solid var(--accent-color);
+            padding-left: 8px;
+        }
+        
+        .level-item.selected::before {
+            content: '▶ ';
+            color: var(--accent-color);
+        }
+
+        #message-window {
+            bottom: 160px;
+            left: 5%;
+            width: 90%;
+            min-height: 120px;
+            font-size: 18px;
+            line-height: 1.6;
+            z-index: 10;
+            padding-bottom: 40px;
+        }
+
+        #message-ok-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(200, 50, 50, 0.8);
+            border: 2px solid #fff;
+            border-radius: 4px;
+            padding: 6px 16px;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            display: none;
+        }
+        #message-ok-btn:active {
+            background: rgba(255, 80, 80, 1);
+        }
+
+        #quiz-window {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 15;
+            padding: 20px;
+            padding-bottom: 50px;
+        }
+
+        #quiz-question {
+            font-size: 18px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        #quiz-choices {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            margin-bottom: 10px;
+        }
+
+        .choice-item {
+            padding: 10px;
+            cursor: pointer;
+            list-style: none;
+            transition: background-color 0.1s;
+            margin-bottom: 5px;
+            border: 2px solid transparent;
+        }
+        
+        .choice-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .choice-item.selected {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-color: var(--accent-color);
+        }
+
+        .choice-item.selected::before {
+            content: '▶';
+            margin-right: 5px;
+            color: var(--accent-color);
+        }
+        
+        .choice-item:not(.selected)::before {
+            content: ' '; 
+            margin-right: 5px;
+        }
+
+        #quiz-ok-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(200, 50, 50, 0.8);
+            border: 2px solid #fff;
+            border-radius: 4px;
+            padding: 6px 16px;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            display: none;
+        }
+        #quiz-ok-btn:active {
+            background: rgba(255, 80, 80, 1);
+        }
+
+        .cursor-indicator {
+            animation: blink 0.8s infinite;
+            display: inline-block;
+            margin-left: 5px;
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* --- 仮想コントローラー (モバイル操作用) --- */
+        #controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            height: 140px;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 20;
+        }
+
+        .d-pad {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+
+        .d-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 5px;
+        }
+        .d-btn:active { background: rgba(255, 255, 255, 0.5); }
+
+        .d-up { top: 0; left: 40px; width: 40px; height: 40px; }
+        .d-down { bottom: 0; left: 40px; width: 40px; height: 40px; }
+        .d-left { top: 40px; left: 0; width: 40px; height: 40px; }
+        .d-right { top: 40px; right: 0; width: 40px; height: 40px; }
+
+        .action-pad {
+            pointer-events: auto;
+            display: flex;
+            gap: 15px;
+        }
+
+        #loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+        }
+
+        #loading-message {
+            margin-top: 10px;
+            font-size: 16px;
+            text-align: center;
+            white-space: pre-wrap;
+        }        
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="loading-screen">
+        <h2 style="margin-top:0;">LOADING...</h2>
+        <div id="loading-message">準備中...</div>
+    </div>
+    
+    <!-- タイトル画面 / レベル選択 -->
+    <div id="title-screen" style="display:none;">
+        <h2 style="color:var(--accent-color); font-size: 24px;">勇者のクイズ冒険</h2>
+        <div id="title-message">攻略するフロアを選んでください。<br>（クリアしたフロアには★がつきます）</div>
+        <ul id="level-list">
+            <!-- JSで生成 -->
+        </ul>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="message-window" class="ui-box">
+        <div id="message-text"></div>
+        <div id="message-cursor" class="cursor-indicator" style="display:none;"></div>
+        <div id="message-ok-btn">OK</div>
+    </div>
+
+    <div id="quiz-window" class="ui-box">
+        <div id="quiz-question"></div>
+        <ul id="quiz-choices"></ul>
+        <div id="quiz-ok-btn">OK</div>
+    </div>
+
+    <div id="controls">
+        <div class="d-pad">
+            <div class="d-btn d-up" data-key="ArrowUp"></div>
+            <div class="d-btn d-down" data-key="ArrowDown"></div>
+            <div class="d-btn d-left" data-key="ArrowLeft"></div>
+            <div class="d-btn d-right" data-key="ArrowRight"></div>
+        </div>
+        <div class="action-pad">
+            <!-- ボタンなし -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const TILE_SIZE = 32;
+    const VIEW_WIDTH = 15;
+    const VIEW_HEIGHT = 15;
+
+    const COLOR_GRASS = '#4caf50';
+    const COLOR_TREE = '#1b5e20';
+    const COLOR_WATER = '#0288d1';
+    const COLOR_WALL = '#795548';
+    const COLOR_FLOOR = '#3e2723';
+    
+    const SPRITE_HERO = { color: '#2196f3', type: 'hero' };
+    const SPRITE_NPC_GUARD = { color: '#f44336', type: 'guard' };
+    const SPRITE_NPC_VILLAGER = { color: '#8bc34a', type: 'villager' };
+    const SPRITE_NPC_SOLDIER = { color: '#9e9e9e', type: 'soldier' };
+
+    const STATE = {
+        EXPLORING: 0,
+        DIALOGUE: 1,
+        CHOICE: 2,
+        ANIMATING: 3,
+        TITLE: 4 // タイトル画面の状態
+    };
+
+    let currentState = STATE.TITLE; // 初期状態をタイトルに
+
+    const MAP_DATA = [
+        // MAP 0: 古語の間 (屋内・学問所のイメージ)
+        {
+            id: 0,
+            name: "古語の間",
+            playerStart: { x: 2, y: 13 },
+            layout: [
+                [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+                [4,3,3,3,4,3,3,3,4,3,3,3,4,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,9,3,4,3,9,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,3,3,4,4,4,4,4,4,4,4,4,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,3,3,3,3,3,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,4,3,9,3,3,9,3,3,4,3,3,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,9,3,3,9,3,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,4,3,3,3,3,3,3,3,4,3,3,3,3,3,3,4],
+                [4,3,3,3,4,4,4,4,3,4,4,4,4,3,3,3,3,3,3,4],
+                [4,3,9,3,3,3,3,3,3,3,3,3,3,3,9,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+        
+        // MAP 1: 読みの間 (中庭・渡り廊下のイメージ)
+        {
+            id: 1,
+            name: "読みの間",
+            playerStart: { x: 9, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,1],
+                [1,4,0,0,0,0,1,1,3,3,1,1,0,0,0,0,0,0,4,1],
+                [1,4,0,9,0,0,1,1,3,3,1,1,0,0,9,0,0,0,4,1],
+                [1,4,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,1],
+                [1,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,4,1],
+                [1,4,0,9,0,0,0,0,3,3,0,0,0,0,9,0,0,0,4,1],
+                [1,4,0,0,0,0,1,1,3,3,1,1,0,0,0,0,0,0,4,1],
+                [1,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+        
+        // MAP 2: 旅の始まりの間 (京の都を出て街道へ)
+        {
+            id: 2,
+            name: "旅の始まりの間",
+            playerStart: { x: 9, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,0,3,3,0,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1,1],
+                [1,0,9,0,1,1,0,0,3,3,0,0,1,1,0,9,0,0,1,1],
+                [1,0,0,0,1,1,0,0,3,3,0,0,1,1,0,0,0,0,1,1],
+                [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1,1],
+                [1,1,1,1,1,1,1,4,3,3,4,1,1,1,1,1,1,1,1,1],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+                [3,9,3,3,9,3,3,3,3,3,3,3,9,3,3,3,9,3,3,3],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [4,2,2,4,4,2,2,4,3,3,4,2,2,4,4,2,2,4,4,4],
+                [4,2,2,4,4,2,2,4,3,3,4,2,2,4,4,2,2,4,4,4],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+
+        // MAP 3: 八橋の間 (三河の国・水辺と橋が入り組む迷路)
+        {
+            id: 3,
+            name: "八橋の間",
+            playerStart: { x: 2, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
+                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,2,2,1],
+                [1,2,3,3,3,2,2,2,3,3,3,3,2,2,2,3,3,2,2,1],
+                [1,2,3,9,3,2,2,2,3,9,3,3,2,2,2,3,3,2,2,1],
+                [1,2,3,3,3,3,3,3,3,3,3,3,2,2,2,3,3,2,2,1],
+                [1,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,2,2,1],
+                [1,2,2,2,3,3,3,3,2,2,2,3,3,9,3,2,2,2,2,1],
+                [1,2,2,2,3,9,3,3,2,2,2,2,2,2,2,2,2,2,2,1],
+                [1,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1],
+                [1,2,3,3,3,3,2,2,2,2,2,2,2,2,2,3,3,2,2,1],
+                [1,2,3,9,3,2,2,2,2,3,3,3,3,2,2,2,3,3,2,1],
+                [1,2,3,3,3,2,2,2,2,3,9,3,3,2,2,2,3,3,2,1],
+                [1,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,2,1],
+                [1,2,2,2,2,2,3,3,9,3,2,2,2,2,2,2,2,2,2,1],
+                [1,1,3,3,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+
+        // MAP 4: 宇津の山の間 (駿河の国・鬱蒼とした山道)
+        {
+            id: 4,
+            name: "宇津の山の間",
+            playerStart: { x: 2, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
+                [1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,3,3,1,1,1],
+                [1,1,1,1,1,1,0,9,0,9,0,0,1,1,1,3,3,1,1,1],
+                [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,1,1,1],
+                [1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,1,1,1,0,1,1,1,1,1,0,0,0,1,0,1,1,1],
+                [1,1,0,0,0,0,0,1,0,0,0,0,0,9,0,1,0,1,1,1],
+                [1,1,1,1,1,1,1,1,0,1,1,1,0,0,0,1,0,1,1,1],
+                [1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,9,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,1,1,1,1,0,9,0,0,0,0,0,0,1,1,1,1],
+                [1,1,3,3,3,3,3,3,0,0,0,0,1,1,1,1,1,1,1,1],
+                [1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+
+        // MAP 5: 富士山の間 (裾野から見上げる道)
+        {
+            id: 5,
+            name: "富士山の間",
+            playerStart: { x: 8, y: 14 },
+            layout: [
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [4,4,4,4,4,4,4,0,0,0,0,4,4,4,4,4,4,4,4,4],
+                [4,4,4,4,4,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4],
+                [4,4,4,4,0,0,0,0,9,9,0,0,0,0,4,4,4,4,4,4],
+                [4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4],
+                [4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4],
+                [4,0,0,0,0,9,0,0,0,0,0,0,9,0,0,0,0,4,4,4],
+                [4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4],
+                [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+                [1,1,0,0,9,0,0,0,0,0,0,0,0,9,0,0,0,0,0,1],
+                [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1],
+                [1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ],
+            entities: []
+        },
+
+        // MAP 6: 隅田川の間 (手前の岸と渡し船のみ)
+        {
+            id: 6,
+            name: "隅田川の間",
+            playerStart: { x: 9, y: 14 },
+            layout: [
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,3,3,9,9,3,3,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,3,9,9,3,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,9,9,9,9,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,0,0,0,0,0,3,3,0,0,0,0,0,0,0,2,2,2],
+                [2,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,2],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1],
+            ],
+            entities: []
+        }
+    ];
+
+    let currentMapId = 0;
+    let currentMap = MAP_DATA[currentMapId];
+    let entities = currentMap.entities;
+
+    let player = {
+        x: currentMap.playerStart.x,
+        y: currentMap.playerStart.y,
+        direction: 'down',
+        stepState: 0
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const messageWindow = document.getElementById('message-window');
+    const messageText = document.getElementById('message-text');
+    const messageCursor = document.getElementById('message-cursor');
+    const messageOkBtn = document.getElementById('message-ok-btn');
+    const quizWindow = document.getElementById('quiz-window');
+    const quizQuestion = document.getElementById('quiz-question');
+    const quizChoices = document.getElementById('quiz-choices');
+    const quizOkBtn = document.getElementById('quiz-ok-btn');
+    
+    // タイトル画面関連
+    const titleScreen = document.getElementById('title-screen');
+    const levelList = document.getElementById('level-list');
+    let titleCursorIndex = 0;
+    let clearedMaps = new Set(); // クリア済みのマップIDを保持
+
+    let currentChoiceIndex = -1; 
+    let confettiParticles = [];
+    
+    let currentQuizData = null;
+    let currentQuizEntity = null;
+    let textAnimationTimer = null;
+    let fullText = "";
+    let isWaitingForEnter = false;
+    let textCallback = null;
+    let csvData = null;
+    let gameStarted = false;
+    
+    // システム用選択肢のコールバック
+    let systemChoiceCallback = null;
+
+    // 起動時にCSVを自動読み込み
+    window.addEventListener('DOMContentLoaded', () => {
+        loadCSVFile();
+    });
+
+    // クリアデータをローカルストレージから読み込み
+    function loadClearedData() {
+        const savedData = localStorage.getItem('heroQuizClearedMaps');
+        if (savedData) {
+            try {
+                const arr = JSON.parse(savedData);
+                clearedMaps = new Set(arr);
+            } catch (e) {
+                console.error("Save data parse error", e);
+                clearedMaps = new Set();
+            }
+        }
+    }
+
+    // クリアデータをローカルストレージに保存
+    function saveClearStatus(mapId) {
+        clearedMaps.add(mapId);
+        localStorage.setItem('heroQuizClearedMaps', JSON.stringify(Array.from(clearedMaps)));
+    }
+
+    async function loadCSVFile() {
+        const loadingMessage = document.getElementById('loading-message');
+        
+        try {
+            // quiz.csvをfetchで読み込み
+            const response = await fetch('quiz.csv');
+            
+            if (!response.ok) {
+                throw new Error(`CSVファイルが見つかりません (${response.status})`);
+            }
+            
+            const csvText = await response.text();
+            loadingMessage.textContent = 'CSVを解析中...';
+            
+            // 少し待ってから解析
+            setTimeout(() => {
+                parseCSVAndInit(csvText);
+            }, 500);
+            
+        } catch (error) {
+            loadingMessage.innerHTML = `
+                <span style="color: #f44336;">エラー: ${error.message}</span><br>
+                <span style="font-size: 12px; margin-top: 10px; display: block;">
+                    HTMLファイルと同じフォルダに「quiz.csv」を配置してください<br>
+                    形式: map_id,name,sprite,question,option,correct
+                </span>
+            `;
+            console.error('CSV読み込みエラー:', error);
+        }
+    }
+
+    function parseCSVAndInit(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        const expectedHeaders = ['map_id', 'name', 'sprite', 'question', 'option', 'correct'];
+        const hasValidHeaders = expectedHeaders.every(h => headers.includes(h));
+        
+        if (!hasValidHeaders) {
+            alert('CSVの形式が正しくありません。\n必要な列: map_id,name,sprite,question,option,correct');
+            return;
+        }
+        
+        const npcsData = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            
+            const values = lines[i].split(',').map(v => v.trim());
+            const npc = {
+                map_id: parseInt(values[0]),
+                name: values[1],
+                sprite: values[2],
+                question: values[3],
+                option: values[4],
+                correct: parseInt(values[5])
+            };
+            npcsData.push(npc);
+        }
+        
+        generateNPCsFromCSV(npcsData);
+        
+        document.getElementById('loading-screen').style.display = 'none';
+        
+        // クリアデータの読み込みとタイトル画面の表示
+        loadClearedData();
+        showTitleScreen();
+    }
+    
+    // タイトル画面の表示
+    function showTitleScreen() {
+        currentState = STATE.TITLE;
+        confettiParticles = []; // 紙吹雪をリセット
+        titleScreen.style.display = 'flex';
+        levelList.innerHTML = '';
+        titleCursorIndex = 0;
+
+        MAP_DATA.forEach((map, index) => {
+            const isCleared = clearedMaps.has(map.id);
+            const li = document.createElement('li');
+            li.className = 'level-item';
+            li.textContent = `${map.name}` + (isCleared ? ' ★' : '');
+            
+            if (index === 0) li.classList.add('selected');
+
+            li.onclick = () => {
+                startGame(index);
+            };
+            
+            li.onmouseover = () => {
+                updateTitleCursor(index);
+            };
+
+            levelList.appendChild(li);
+        });
+    }
+
+    function updateTitleCursor(index) {
+        const items = levelList.getElementsByClassName('level-item');
+        if (index >= 0 && index < items.length) {
+            items[titleCursorIndex].classList.remove('selected');
+            titleCursorIndex = index;
+            items[titleCursorIndex].classList.add('selected');
+            
+            // スクロール調整
+            items[titleCursorIndex].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function startGame(mapId) {
+        if (mapId < 0 || mapId >= MAP_DATA.length) return;
+
+        titleScreen.style.display = 'none';
+        gameStarted = true;
+        
+        // マップ初期化
+        currentMapId = mapId;
+        currentMap = MAP_DATA[currentMapId];
+        
+        // エンティティの状態をリセット（クリア済みフラグを戻すなど）
+        // CSVから再生成するほうが確実だが、ここでは簡易的に既存エンティティのフラグをリセット
+        // 完全に初期状態に戻したい場合はCSVパース時にデータを保持しておきコピーする必要があるが
+        // ここでは前回プレイの状態（削除されたNPC）を復活させる処理を入れる
+        resetMapEntities(currentMap);
+
+        entities = currentMap.entities;
+        player.x = currentMap.playerStart.x;
+        player.y = currentMap.playerStart.y;
+        player.direction = 'down';
+        currentState = STATE.EXPLORING;
+        
+        // BGM的な演出として、少し待ってから開始
+        setTimeout(() => {
+            displayText(`勇者よ、${currentMap.name}に到着した。\nすべてのクイズに答えて進むのだ。`);
+        }, 300);
+    }
+    
+    function resetMapEntities(map) {
+        map.entities.forEach(e => {
+            e.quizCompleted = false;
+            e.removed = false;
+            e.blocking = true;
+            e.blinking = false;
+        });
+    }
+
+    function generateNPCsFromCSV(npcsData) {
+        const npcsByMap = {};
+        npcsData.forEach(npc => {
+            if (!npcsByMap[npc.map_id]) {
+                npcsByMap[npc.map_id] = [];
+            }
+            npcsByMap[npc.map_id].push(npc);
+        });
+        
+        Object.keys(npcsByMap).forEach(mapId => {
+            const mapIndex = parseInt(mapId);
+            if (mapIndex < 0 || mapIndex >= MAP_DATA.length) return;
+            
+            const map = MAP_DATA[mapIndex];
+            const npcs = npcsByMap[mapId];
+            
+            npcs.forEach(npcData => {
+                let sprite = SPRITE_NPC_VILLAGER;
+                if (npcData.sprite.toLowerCase() === 'guard') {
+                    sprite = SPRITE_NPC_GUARD;
+                } else if (npcData.sprite.toLowerCase() === 'soldier') {
+                    sprite = SPRITE_NPC_SOLDIER;
+                } else if (npcData.sprite.toLowerCase() === 'villager') {
+                    sprite = SPRITE_NPC_VILLAGER;
+                }
+                
+                const options = npcData.option.split(';').map(o => o.trim());
+                const pos = findRandomWalkablePosition(map);
+                
+                if (pos) {
+                    map.entities.push({
+                        x: pos.x,
+                        y: pos.y,
+                        name: npcData.name,
+                        sprite: sprite,
+                        blocking: true,
+                        quiz: {
+                            question: npcData.question,
+                            options: options,
+                            correct: npcData.correct
+                        }
+                    });
+                }
+            });
+        });
+        
+        // 現在のエンティティ参照を更新
+        if (gameStarted) {
+            entities = currentMap.entities;
+        }
+    }
+
+    function findRandomWalkablePosition(map) {
+        const layout = map.layout;
+        const playerStart = map.playerStart;
+        const maxAttempts = 1000;
+        
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const x = Math.floor(Math.random() * layout[0].length);
+            const y = Math.floor(Math.random() * layout.length);
+            
+            const tile = layout[y][x];
+            if (tile !== 0 && tile !== 3 && tile !== 9) continue;
+            
+            const dist = Math.abs(x - playerStart.x) + Math.abs(y - playerStart.y);
+            if (dist < 3) continue;
+            
+            const overlap = map.entities.some(e => e.x === x && e.y === y);
+            if (overlap) continue;
+            
+            return { x, y };
+        }
+        return null;
+    }
+
+    function resize() {
+        const container = document.getElementById('game-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        ctx.imageSmoothingEnabled = false;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const keys = {};
+    let lastKeyTime = 0;
+    const keyRepeatRate = 150;
+
+    messageOkBtn.addEventListener('click', () => {
+        if (currentState === STATE.DIALOGUE) {
+            progressDialogue();
+        }
+    });
+
+    quizOkBtn.addEventListener('click', () => {
+        if (currentState === STATE.CHOICE && currentChoiceIndex !== -1) {
+            confirmChoice();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        keys[e.code] = true;
+        handleInput(e.code);
+    });
+    window.addEventListener('keyup', (e) => {
+        keys[e.code] = false;
+    });
+
+    document.querySelectorAll('[data-key]').forEach(el => {
+        el.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const key = el.getAttribute('data-key');
+            keys[key] = true;
+            handleInput(key);
+        }, {passive: false});
+
+        el.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const key = el.getAttribute('data-key');
+            keys[key] = false;
+        });
+        
+        el.addEventListener('mousedown', (e) => {
+            const key = el.getAttribute('data-key');
+            keys[key] = true;
+            handleInput(key);
+        });
+        el.addEventListener('mouseup', (e) => {
+            const key = el.getAttribute('data-key');
+            keys[key] = false;
+        });
+    });
+
+    function handleInput(code) {
+        if (STATE.TITLE === currentState) {
+            handleTitleInput(code);
+        } else if (STATE.EXPLORING === currentState) {
+            // 探索中の操作
+        } else if (STATE.DIALOGUE === currentState) {
+            handleDialogueInput(code);
+        } else if (STATE.CHOICE === currentState) {
+            handleChoiceInput(code);
+        }
+    }
+
+    function handleTitleInput(code) {
+        if (code === 'ArrowUp') {
+            updateTitleCursor(Math.max(0, titleCursorIndex - 1));
+        } else if (code === 'ArrowDown') {
+            updateTitleCursor(Math.min(MAP_DATA.length - 1, titleCursorIndex + 1));
+        } else if (code === 'Enter' || code === 'Space' || code === 'KeyZ') {
+            startGame(titleCursorIndex);
+        }
+    }
+
+    function handleDialogueInput(code) {
+        if (code === 'Enter' || code === 'Space' || code === 'KeyZ') {
+            progressDialogue();
+        }
+    }
+
+    function progressDialogue() {
+        if (isWaitingForEnter) {
+            if (textCallback) {
+                const cb = textCallback;
+                textCallback = null;
+                cb();
+            } else {
+                closeDialogue();
+            }
+        } else {
+            if (textAnimationTimer) {
+                clearInterval(textAnimationTimer);
+                messageText.innerHTML = fullText.replace(/\n/g, '<br>');
+                isWaitingForEnter = true;
+                messageCursor.style.display = 'inline-block';
+                messageOkBtn.style.display = 'block';
+            }
+        }
+    }
+
+    function handleChoiceInput(code) {
+        if (code === 'ArrowUp') {
+            if (currentChoiceIndex === -1) {
+                currentChoiceIndex = currentQuizData.options.length - 1;
+            } else {
+                currentChoiceIndex = Math.max(0, currentChoiceIndex - 1);
+            }
+            renderChoices();
+        } else if (code === 'ArrowDown') {
+            if (currentChoiceIndex === -1) {
+                currentChoiceIndex = 0;
+            } else {
+                currentChoiceIndex = Math.min(currentQuizData.options.length - 1, currentChoiceIndex + 1);
+            }
+            renderChoices();
+        } 
+        else if (code === 'Enter' || code === 'Space' || code === 'KeyZ') {
+            if (currentChoiceIndex !== -1) {
+                confirmChoice();
+            }
+        }
+    }
+
+    function isWalkable(x, y) {
+        const mapLayout = currentMap.layout;
+        if (y < 0 || y >= mapLayout.length || x < 0 || x >= mapLayout[0].length) return false;
+        
+        const tile = mapLayout[y][x];
+        if (tile === 1 || tile === 2 || tile === 4) return false;
+
+        for (let e of entities) {
+            if (e.x === x && e.y === y && e.blocking && !e.removed) return false;
+        }
+        
+        return true;
+    }
+
+    function update() {
+        if (currentState === STATE.EXPLORING) {
+            movePlayer();
+            checkAutoInteraction();
+        }
+    }
+
+    function movePlayer() {
+        const now = Date.now();
+        if (now - lastKeyTime < keyRepeatRate) return;
+
+        let dx = 0;
+        let dy = 0;
+        let moved = false;
+
+        if (keys['ArrowUp']) { dy = -1; player.direction = 'up'; moved = true; }
+        else if (keys['ArrowDown']) { dy = 1; player.direction = 'down'; moved = true; }
+        else if (keys['ArrowLeft']) { dx = -1; player.direction = 'left'; moved = true; }
+        else if (keys['ArrowRight']) { dx = 1; player.direction = 'right'; moved = true; }
+
+        if (moved) {
+            const newX = player.x + dx;
+            const newY = player.y + dy;
+
+            if (isWalkable(newX, newY)) {
+                player.x = newX;
+                player.y = newY;
+                player.stepState = (player.stepState + 1) % 2;
+            }
+            lastKeyTime = now;
+        }
+    }
+
+    function checkAutoInteraction() {
+        const directions = [
+            {dx: 0, dy: -1}, {dx: 0, dy: 1},
+            {dx: -1, dy: 0}, {dx: 1, dy: 0},
+            {dx: -1, dy: -1}, {dx: 1, dy: -1},
+            {dx: -1, dy: 1}, {dx: 1, dy: 1}
+        ];
+
+        for (let dir of directions) {
+            const targetX = player.x + dir.dx;
+            const targetY = player.y + dir.dy;
+            
+            const targetEntity = entities.find(e => 
+                e.x === targetX && 
+                e.y === targetY && 
+                !e.removed && 
+                e.quiz && 
+                !e.quizCompleted
+            );
+
+            if (targetEntity) {
+                startQuiz(targetEntity);
+                return;
+            }
+        }
+    }
+
+    function displayText(text, callback = null) {
+        currentState = STATE.DIALOGUE;
+        messageWindow.style.display = 'block';
+        messageText.innerHTML = '';
+        messageCursor.style.display = 'none';
+        messageOkBtn.style.display = 'none';
+        
+        fullText = text;
+        textCallback = callback;
+        isWaitingForEnter = false;
+
+        let i = 0;
+        if (textAnimationTimer) clearInterval(textAnimationTimer);
+
+        textAnimationTimer = setInterval(() => {
+            messageText.innerHTML = fullText.substring(0, i + 1).replace(/\n/g, '<br>');
+            i++;
+            if (i >= fullText.length) {
+                clearInterval(textAnimationTimer);
+                isWaitingForEnter = true;
+                messageCursor.style.display = 'inline-block';
+                messageOkBtn.style.display = 'block';
+            }
+        }, 30);
+    }
+
+    function closeDialogue() {
+        messageWindow.style.display = 'none';
+        messageOkBtn.style.display = 'none';
+        quizWindow.style.display = 'none';
+        quizOkBtn.style.display = 'none';
+        currentState = STATE.EXPLORING;
+        textCallback = null;
+    }
+
+    function pushPlayerBack() {
+        let dx = 0, dy = 0;
+        if (player.direction === 'up') dy = 1;
+        if (player.direction === 'down') dy = -1;
+        if (player.direction === 'left') dx = 1;
+        if (player.direction === 'right') dx = -1;
+
+        if (isWalkable(player.x + dx, player.y + dy)) {
+            player.x += dx;
+            player.y += dy;
+        }
+        closeDialogue();
+    }
+
+    function startQuiz(entity) {
+        currentState = STATE.CHOICE;
+        currentQuizData = entity.quiz;
+        currentQuizEntity = entity;
+        currentChoiceIndex = 0;
+        systemChoiceCallback = null; // NPCクイズ時はnull
+
+        quizWindow.style.display = 'block';
+        quizQuestion.innerHTML = currentQuizData.question.replace(/\n/g, '<br>');
+        renderChoices();
+        quizOkBtn.style.display = 'block';
+    }
+
+    // システム的な問いかけ（Yes/Noなど）を行う関数
+    function askSystemQuestion(text, options, callback) {
+        currentState = STATE.CHOICE;
+        systemChoiceCallback = callback;
+        currentQuizData = { options: options }; // ダミーデータ
+        currentQuizEntity = null;
+        currentChoiceIndex = 0;
+
+        quizWindow.style.display = 'block';
+        quizQuestion.innerHTML = text.replace(/\n/g, '<br>');
+        renderChoices();
+        quizOkBtn.style.display = 'block';
+    }
+
+    function renderChoices() {
+        quizChoices.innerHTML = '';
+        currentQuizData.options.forEach((opt, index) => {
+            const li = document.createElement('li');
+            li.className = 'choice-item ' + (index === currentChoiceIndex ? 'selected' : '');
+            li.textContent = opt;
+            
+            li.onclick = () => {
+                currentChoiceIndex = index; 
+                renderChoices(); 
+                confirmChoice();
+            };
+            
+            li.onmouseover = () => {
+                if (currentState === STATE.CHOICE) {
+                    currentChoiceIndex = index;
+                    renderChoices(); 
+                }
+            }
+
+            quizChoices.appendChild(li);
+        });
+    }
+
+    function confirmChoice() {
+        if (currentChoiceIndex === -1) return;
+
+        const selectedIndex = currentChoiceIndex;
+        currentChoiceIndex = -1;
+        
+        quizWindow.style.display = 'none';
+        quizOkBtn.style.display = 'none';
+        
+        // システム選択肢のコールバックがある場合
+        if (systemChoiceCallback) {
+            const cb = systemChoiceCallback;
+            systemChoiceCallback = null;
+            currentState = STATE.EXPLORING; // 一旦ステートを戻す
+            cb(selectedIndex);
+            return;
+        }
+
+        // 通常のNPCクイズ処理
+        if (selectedIndex === currentQuizData.correct) {
+            currentQuizEntity.quizCompleted = true;
+            
+            blinkAndRemoveNPC(currentQuizEntity, () => {
+                checkMapClear();
+            });
+        } else {
+            displayText("「違うな。出直してこい!」", () => {
+                pushPlayerBack();
+            });
+        }
+    }
+
+    function blinkAndRemoveNPC(npc, callback) {
+        let blinkCount = 0;
+        const maxBlinks = 6;
+        
+        const blinkInterval = setInterval(() => {
+            npc.blinking = !npc.blinking;
+            blinkCount++;
+            
+            if (blinkCount >= maxBlinks) {
+                clearInterval(blinkInterval);
+                npc.removed = true;
+                npc.blocking = false;
+                if (callback) callback();
+            }
+        }, 150);
+    }
+
+    function checkMapClear() {
+        const allCompleted = entities.every(e => !e.quiz || e.quizCompleted);
+        
+        if (allCompleted) {
+            // クリアデータを保存
+            saveClearStatus(currentMapId);
+            
+            // 紙吹雪演出
+            createConfetti();
+
+            displayText(`このフロアをクリアした!\nメニューに戻ります。`, () => {
+                closeDialogue();
+                // 少し待ってからタイトルへ遷移
+                setTimeout(() => {
+                    showTitleScreen();
+                }, 500);
+            });
+        } else {
+            closeDialogue();
+        }
+    }
+
+    function draw() {
+        // 描画ループは常に回すが、タイトル画面のときはゲーム画面を描画しつつ上にオーバーレイが出る
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const scale = canvas.width / (VIEW_WIDTH * TILE_SIZE);
+        
+        ctx.save();
+        ctx.scale(scale, scale);
+
+        const camX = player.x * TILE_SIZE - (VIEW_WIDTH * TILE_SIZE) / 2 + TILE_SIZE / 2;
+        const camY = player.y * TILE_SIZE - (VIEW_HEIGHT * TILE_SIZE) / 2 + TILE_SIZE / 2;
+
+        ctx.translate(-camX, -camY);
+
+        const mapLayout = currentMap.layout;
+        for (let y = 0; y < mapLayout.length; y++) {
+            for (let x = 0; x < mapLayout[y].length; x++) {
+                drawTile(x, y, mapLayout[y][x]);
+            }
+        }
+
+        entities.forEach(ent => {
+            if (!ent.removed && !ent.blinking) {
+                drawSprite(ent.x, ent.y, ent.sprite);
+            } else if (ent.blinking) {
+                if (Math.random() > 0.5) {
+                    drawSprite(ent.x, ent.y, ent.sprite);
+                }
+            }
+        });
+
+        // タイトル画面時はプレイヤーを描画しない、または動かない状態で描画する
+        drawSprite(player.x, player.y, SPRITE_HERO, true);
+
+        ctx.restore();
+
+        if (confettiParticles.length > 0) {
+            updateAndDrawConfetti();
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    function drawTile(x, y, type) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+
+        let color = '#000';
+        switch (type) {
+            case 0: color = COLOR_GRASS; break;
+            case 1: color = COLOR_TREE; break;
+            case 2: color = COLOR_WATER; break;
+            case 3: 
+            case 9: color = COLOR_FLOOR; break;
+            case 4: color = COLOR_WALL; break;
+        }
+
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+        if (type === 1) {
+            ctx.fillStyle = '#2e7d32';
+            ctx.fillRect(px + 8, py + 8, 16, 16);
+        } else if (type === 4) {
+            ctx.strokeStyle = '#5d4037';
+            ctx.strokeRect(px+2, py+2, TILE_SIZE-4, TILE_SIZE-4);
+        } else if (type === 2) {
+            if (Date.now() % 1000 < 500) {
+                ctx.fillStyle = '#4fc3f7';
+                ctx.fillRect(px + 5, py + 5, 5, 2);
+            }
+        }
+    }
+
+    function drawSprite(gridX, gridY, sprite, isPlayer = false) {
+        const px = gridX * TILE_SIZE;
+        const py = gridY * TILE_SIZE;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(px + 16, py + 26, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        let offset = 0;
+        // タイトル画面では足踏みしない、または探索中のみ足踏みする
+        if (isPlayer && currentState === STATE.EXPLORING && (keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'])) {
+             offset = (Date.now() % 200 < 100) ? -2 : 0;
+        }
+
+        ctx.fillStyle = sprite.color;
+        ctx.fillRect(px + 8, py + 4 + offset, 16, 14);
+        
+        ctx.fillStyle = '#000';
+        ctx.fillRect(px + 8, py + 18 + offset, 6, 8);
+        ctx.fillRect(px + 18, py + 18 + offset, 6, 8);
+        
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(px + 10, py + 8 + offset, 4, 4);
+        ctx.fillRect(px + 18, py + 8 + offset, 4, 4);
+        ctx.fillStyle = '#000';
+        
+        if (isPlayer) {
+             let eyeOffsetX = 1;
+             if (player.direction === 'left') eyeOffsetX = 0;
+             if (player.direction === 'right') eyeOffsetX = 2;
+             
+             ctx.fillRect(px + 10 + eyeOffsetX, py + 9 + offset, 2, 2);
+             ctx.fillRect(px + 18 + eyeOffsetX, py + 9 + offset, 2, 2);
+        } else {
+             ctx.fillRect(px + 11, py + 9 + offset, 2, 2);
+             ctx.fillRect(px + 19, py + 9 + offset, 2, 2);
+        }
+
+        if (sprite.type === 'guard') {
+            ctx.fillStyle = '#607d8b';
+            ctx.fillRect(px + 6, py + 2 + offset, 20, 4);
+        }
+        else if (sprite.type === 'soldier') {
+            ctx.fillStyle = '#263238';
+            ctx.fillRect(px + 7, py + 6 + offset, 18, 18);
+        }
+    }
+
+    function createConfetti() {
+        confettiParticles = [];
+        
+        for(let i = 0; i < 50; i++) {
+            confettiParticles.push({
+                x: Math.random() * canvas.width,
+                y: -20 - Math.random() * 100,
+                vx: (Math.random() - 0.5) * 2,
+                vy: Math.random() * 2 + 1,
+                size: Math.random() * 8 + 3,
+                color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2
+            });
+        }
+    }
+
+    function updateAndDrawConfetti() {
+        for (let i = confettiParticles.length - 1; i >= 0; i--) {
+            const p = confettiParticles[i];
+            
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rotation += p.rotationSpeed;
+            
+            if (p.y > canvas.height + 20) {
+                confettiParticles.splice(i, 1);
+                continue;
+            }
+            
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+            ctx.restore();
+        }
+    }
+
+    setInterval(update, 1000 / 60);
+    requestAnimationFrame(draw);
+
+
+</script>
+</body>
+</html>
