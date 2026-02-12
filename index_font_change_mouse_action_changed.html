@@ -857,9 +857,6 @@
     // システム用選択肢のコールバック
     let systemChoiceCallback = null;
 
-    // 現在表示中のシャッフルされた選択肢（{text, originalIndex}の配列）
-    let currentShuffledOptions = null;
-
     // 起動時にCSVを自動読み込み
     window.addEventListener('DOMContentLoaded', () => {
         loadCSVFile();
@@ -1545,10 +1542,8 @@
     }
 
     function handleChoiceInput(code) {
-        // currentShuffledOptionsの長さを使うことでシャッフル後も対応
-        const optionsCount = currentShuffledOptions ? currentShuffledOptions.length : currentQuizData.options.length;
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
-        const totalOptions = optionsCount + (hasHint && !systemChoiceCallback ? 1 : 0);
+        const totalOptions = currentQuizData.options.length + (hasHint && !systemChoiceCallback ? 1 : 0);
 
         if (code === 'ArrowUp') {
             if (currentChoiceIndex === -1) {
@@ -1710,21 +1705,6 @@
         currentChoiceIndex = 0;
         systemChoiceCallback = null; 
 
-        // ★追加: 選択肢のシャッフル処理
-        if (currentQuizData.options) {
-            // 元のインデックスとテキストをペアにして保持
-            const mapped = currentQuizData.options.map((opt, i) => ({ text: opt, originalIndex: i }));
-            
-            // Fisher-Yates Shuffle
-            for (let i = mapped.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
-            }
-            currentShuffledOptions = mapped;
-        } else {
-            currentShuffledOptions = [];
-        }
-
         quizWindow.style.display = 'flex';
         quizQuestion.innerHTML = currentQuizData.question.replace(/\n/g, '<br>');
         quizQuestion.scrollTop = 0;
@@ -1805,15 +1785,11 @@
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
         const showHintBtn = hasHint && !systemChoiceCallback;
         
-        // ★変更: シャッフルされたオプションを使用
-        // nullガードを入れて安全に
-        const displayList = currentShuffledOptions || [];
-
         // 選択肢の生成
-        displayList.forEach((optObj, index) => {
+        currentQuizData.options.forEach((opt, index) => {
             const li = document.createElement('li');
             li.className = 'choice-item ' + (index === currentChoiceIndex ? 'selected' : '');
-            li.textContent = optObj.text; // シャッフル後のテキスト
+            li.textContent = opt;
             
             li.onclick = () => {
                 currentChoiceIndex = index; 
@@ -1821,6 +1797,14 @@
                 confirmChoice();
             };
             
+            /*変更前
+            li.onmouseover = () => {
+                if (currentState === STATE.CHOICE) {
+                    currentChoiceIndex = index;
+                    renderChoices(); 
+                }
+            }
+            */
             // 変更後：条件に && isUsingMouse を追加
             li.onmouseover = () => {
                 if (currentState === STATE.CHOICE && isUsingMouse) { 
@@ -1828,12 +1812,15 @@
                     renderChoices(); 
                 }
             }
+
+
+
             quizChoices.appendChild(li);
         });
 
-        // 「解説を見る」ボタンの生成 (常にリストの最後尾)
+        // 「解説を見る」ボタンの生成
         if (showHintBtn) {
-            const hintIndex = displayList.length;
+            const hintIndex = currentQuizData.options.length;
             const li = document.createElement('li');
             li.className = 'choice-item hint-btn ' + (hintIndex === currentChoiceIndex ? 'selected' : '');
             li.textContent = '解説を見る';
@@ -1845,7 +1832,7 @@
             };
 
             li.onmouseover = () => {
-                if (currentState === STATE.CHOICE && isUsingMouse) {
+                if (currentState === STATE.CHOICE) {
                     currentChoiceIndex = hintIndex;
                     renderChoices();
                 }
@@ -1865,31 +1852,24 @@
 
         // --- 追加: システム選択肢（召喚確認など）の場合の処理 ---
         if (systemChoiceCallback) {
-            // システム選択肢はシャッフルしていないので、currentChoiceIndexはそのままoriginalIndexとして使える
-            // ただし一貫性のため currentShuffledOptions 経由で取得しても良い
-            const actualIndex = currentShuffledOptions ? currentShuffledOptions[currentChoiceIndex].originalIndex : currentChoiceIndex;
-            systemChoiceCallback(actualIndex);
+            systemChoiceCallback(currentChoiceIndex);
             return;
         }
         // ----------------------------------------------------
 
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
         const showHintBtn = hasHint && !systemChoiceCallback;
-        
-        // ヒントボタンは options の長さと同じインデックス
-        const isHintSelected = showHintBtn && (currentChoiceIndex === currentShuffledOptions.length);
+        const isHintSelected = showHintBtn && (currentChoiceIndex === currentQuizData.options.length);
 
         if (isHintSelected) {
             showHint();
             return;
         }
 
-        // ★変更: 表示インデックスから元の正解インデックスを取り出して判定
-        const selectedObj = currentShuffledOptions[currentChoiceIndex];
-        const originalIndex = selectedObj.originalIndex;
+        const selectedIndex = currentChoiceIndex;
         
         // 通常のクイズ判定
-        if (originalIndex === currentQuizData.correct) {
+        if (selectedIndex === currentQuizData.correct) {
             handleCorrectAnswer();
         } else {
             handleIncorrectAnswer();
@@ -2055,10 +2035,6 @@
             hint: ""
         };
         currentQuizEntity = null;
-
-        // ★追加: システム選択肢はシャッフルしない（固定順）
-        // そのままマッピング配列を作成してセット
-        currentShuffledOptions = currentQuizData.options.map((opt, i) => ({ text: opt, originalIndex: i }));
 
         // システム選択肢用のコールバックを設定
         systemChoiceCallback = (index) => {
