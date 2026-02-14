@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マップデータ閲覧ツール</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: 'DotGothic16', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 24px; }
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 16px;
+            background: #444;
+            color: #fff;
+            border: 2px solid #fff;
+            cursor: pointer;
+        }
+        button:hover { background: #666; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #canvas-container {
+            border: 4px double #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            line-height: 0; /* キャンバス下の隙間除去 */
+        }
+        canvas {
+            image-rendering: pixelated;
+        }
+        .info {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        .legend {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 12px; height: 12px; border: 1px solid #fff; }
+    </style>
+</head>
+<body>
+
+    <h1 id="map-name">Map Name</h1>
+
+    <div class="controls">
+        <button id="prev-btn">← 前のマップ</button>
+        <span id="page-num">1 / 7</span>
+        <button id="next-btn">次のマップ →</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="previewCanvas"></canvas>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background:#4caf50"></div>草</div>
+        <div class="legend-item"><div class="color-box" style="background:#1b5e20"></div>木(壁)</div>
+        <div class="legend-item"><div class="color-box" style="background:#0288d1"></div>水(壁)</div>
+        <div class="legend-item"><div class="color-box" style="background:#3e2723"></div>床/道</div>
+        <div class="legend-item"><div class="color-box" style="background:#795548"></div>壁/建物</div>
+        <div class="legend-item"><div class="color-box" style="background:#2196f3"></div>★開始位置</div>
+    </div>
+
+    <div class="info">
+        ※これはプレビュー用です。実際のゲーム画面ではありません。
+    </div>
+
+<script>
+    // --- 修正済みのMAPデータ ---
+    const MAP_DATA = [
+        // MAP 0: 古語の間
+        {
+            id: 0, name: "MAP 0: 古語の間", playerStart: { x: 2, y: 13 },
+            layout: [
+                [4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4],
+                [4,3,3,3,4,3,3,3,4,3,3,3,4,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,9,3,4,3,9,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,3,3,4,4,4,4,4,4,4,4,4,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,3,3,3,3,3,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,4,3,9,3,3,9,3,3,4,3,3,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,9,3,4,3,9,3,3,9,3,3,4,3,9,3,3,3,3,4],
+                [4,3,3,3,4,3,3,3,3,3,3,3,4,3,3,3,3,3,3,4],
+                [4,3,3,3,4,4,4,4,3,4,4,4,4,3,3,3,3,3,3,4],
+                [4,3,9,3,3,3,3,3,3,3,3,3,3,3,9,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 1: 読みの間
+        {
+            id: 1, name: "MAP 1: 読みの間", playerStart: { x: 9, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,1],
+                [1,4,0,0,0,0,1,1,3,3,1,1,0,0,0,0,0,0,4,1],
+                [1,4,0,9,0,0,1,1,3,3,1,1,0,0,9,0,0,0,4,1],
+                [1,4,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,1],
+                [1,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,1],
+                [1,4,1,1,0,0,1,1,3,3,1,1,0,0,1,1,1,1,4,1],
+                [1,4,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,4,1],
+                [1,4,0,9,0,0,0,0,3,3,0,0,0,0,9,0,0,0,4,1],
+                [1,4,0,0,0,0,1,1,3,3,1,1,0,0,0,0,0,0,4,1],
+                [1,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 2: 旅の始まりの間
+        {
+            id: 2, name: "MAP 2: 旅の始まりの間", playerStart: { x: 9, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,0,3,3,0,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1,1],
+                [1,0,9,0,1,1,0,0,3,3,0,0,1,1,0,9,0,0,1,1],
+                [1,0,0,0,1,1,0,0,3,3,0,0,1,1,0,0,0,0,1,1],
+                [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,1,1],
+                [1,1,1,1,1,1,1,4,3,3,4,1,1,1,1,1,1,1,1,1],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+                [3,9,3,3,9,3,3,3,3,3,3,3,9,3,3,3,9,3,3,3],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [4,2,2,4,4,2,2,4,3,3,4,2,2,4,4,2,2,4,4,4],
+                [4,2,2,4,4,2,2,4,3,3,4,2,2,4,4,2,2,4,4,4],
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 3: 八橋の間
+        {
+            id: 3, name: "MAP 3: 八橋の間", playerStart: { x: 2, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
+                [1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,3,2,2,1],
+                [1,2,3,3,3,2,2,2,3,3,3,3,2,2,2,3,3,2,2,1],
+                [1,2,3,9,3,2,2,2,3,9,3,3,2,2,2,3,3,2,2,1],
+                [1,2,3,3,3,3,3,3,3,3,3,3,2,2,2,3,3,2,2,1],
+                [1,2,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,2,2,1],
+                [1,2,2,2,3,3,3,3,2,2,2,3,3,9,3,2,2,2,2,1],
+                [1,2,2,2,3,9,3,3,2,2,2,2,2,2,2,2,2,2,2,1],
+                [1,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1],
+                [1,2,3,3,3,3,2,2,2,2,2,2,2,2,2,3,3,2,2,1],
+                [1,2,3,9,3,2,2,2,2,3,3,3,3,2,2,2,3,3,2,1],
+                [1,2,3,3,3,2,2,2,2,3,9,3,3,2,2,2,3,3,2,1],
+                [1,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,2,1],
+                [1,2,2,2,2,2,3,3,9,3,2,2,2,2,2,2,2,2,2,1],
+                [1,1,3,3,3,3,3,3,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 4: 宇津の山の間
+        {
+            id: 4, name: "MAP 4: 宇津の山の間", playerStart: { x: 2, y: 14 },
+            layout: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1],
+                [1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,3,3,1,1,1],
+                [1,1,1,1,1,1,0,9,0,9,0,0,1,1,1,3,3,1,1,1],
+                [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,3,3,1,1,1],
+                [1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,0,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,1,1,1,0,1,1,1,1,1,0,0,0,1,0,1,1,1],
+                [1,1,0,0,0,0,0,1,0,0,0,0,0,9,0,1,0,1,1,1],
+                [1,1,1,1,1,1,1,1,0,1,1,1,0,0,0,1,0,1,1,1],
+                [1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,9,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1],
+                [1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,1,1,1,1,0,9,0,0,0,0,0,0,1,1,1,1],
+                [1,1,3,3,3,3,3,3,0,0,0,0,1,1,1,1,1,1,1,1],
+                [1,1,3,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 5: 富士山の間
+        {
+            id: 5, name: "MAP 5: 富士山の間", playerStart: { x: 8, y: 14 },
+            layout: [
+                [4,4,4,4,4,4,4,4,3,3,4,4,4,4,4,4,4,4,4,4],
+                [4,4,4,4,4,4,4,0,0,0,0,4,4,4,4,4,4,4,4,4],
+                [4,4,4,4,4,0,0,0,0,0,0,0,0,4,4,4,4,4,4,4],
+                [4,4,4,4,0,0,0,0,9,9,0,0,0,0,4,4,4,4,4,4],
+                [4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4],
+                [4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4],
+                [4,0,0,0,0,9,0,0,0,0,0,0,9,0,0,0,0,4,4,4],
+                [4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4],
+                [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4],
+                [1,1,0,0,9,0,0,0,0,0,0,0,0,9,0,0,0,0,0,1],
+                [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1],
+                [1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1],
+            ]
+        },
+        // MAP 6: 隅田川の間 (修正版: 川と桟橋)
+        {
+            id: 6, name: "MAP 6: 隅田川の間 (修正版)", playerStart: { x: 9, y: 14 },
+            layout: [
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,3,3,9,9,3,3,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,3,9,9,3,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,9,9,9,9,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
+                [2,2,2,0,0,0,0,0,3,3,0,0,0,0,0,0,0,2,2,2],
+                [2,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,2],
+                [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1],
+                [1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1],
+            ]
+        }
+    ];
+
+    // --- 描画ロジック ---
+    const TILE_SIZE = 32;
+    const COLOR_GRASS = '#4caf50';
+    const COLOR_TREE = '#1b5e20';
+    const COLOR_WATER = '#0288d1';
+    const COLOR_WALL = '#795548';
+    const COLOR_FLOOR = '#3e2723';
+
+    let currentMapIndex = 0;
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const mapNameEl = document.getElementById('map-name');
+    const pageNumEl = document.getElementById('page-num');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    function drawMap(index) {
+        const map = MAP_DATA[index];
+        const layout = map.layout;
+        const width = layout[0].length;
+        const height = layout.length;
+
+        // キャンバスサイズ調整
+        canvas.width = width * TILE_SIZE;
+        canvas.height = height * TILE_SIZE;
+
+        // タイル描画
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                drawTile(x, y, layout[y][x]);
+            }
+        }
+
+        // スタート地点描画
+        if (map.playerStart) {
+            const px = map.playerStart.x * TILE_SIZE;
+            const py = map.playerStart.y * TILE_SIZE;
+            
+            // 勇者の簡易表示
+            ctx.fillStyle = '#2196f3'; // 勇者カラー
+            ctx.fillRect(px + 8, py + 4, 16, 14);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + 8, py + 4, 16, 14);
+            
+            // STARマーク
+            ctx.fillStyle = 'yellow';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('★', px + 10, py - 5);
+        }
+
+        // UI更新
+        mapNameEl.textContent = map.name;
+        pageNumEl.textContent = `${index + 1} / ${MAP_DATA.length}`;
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index === MAP_DATA.length - 1;
+    }
+
+    function drawTile(x, y, type) {
+        const px = x * TILE_SIZE;
+        const py = y * TILE_SIZE;
+
+        let color = '#000';
+        switch (type) {
+            case 0: color = COLOR_GRASS; break;
+            case 1: color = COLOR_TREE; break;
+            case 2: color = COLOR_WATER; break;
+            case 3: 
+            case 9: color = COLOR_FLOOR; break;
+            case 4: color = COLOR_WALL; break;
+        }
+
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+        // ゲームと同じディテールを追加
+        if (type === 1) { // 木の葉
+            ctx.fillStyle = '#2e7d32';
+            ctx.fillRect(px + 8, py + 8, 16, 16);
+        } else if (type === 4) { // 壁の枠
+            ctx.strokeStyle = '#5d4037';
+            ctx.strokeRect(px+2, py+2, TILE_SIZE-4, TILE_SIZE-4);
+        } else if (type === 2) { // 水のきらめき
+             // 静止画なので固定パターン
+            ctx.fillStyle = '#4fc3f7';
+            if ((x + y) % 2 === 0) ctx.fillRect(px + 5, py + 5, 5, 2);
+        }
+    }
+
+    // イベントリスナー
+    prevBtn.addEventListener('click', () => {
+        if (currentMapIndex > 0) {
+            currentMapIndex--;
+            drawMap(currentMapIndex);
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentMapIndex < MAP_DATA.length - 1) {
+            currentMapIndex++;
+            drawMap(currentMapIndex);
+        }
+    });
+
+    // 初期描画
+    drawMap(currentMapIndex);
+
+</script>
+</body>
+</html>

@@ -37,12 +37,6 @@
             align-items: flex-start; /* ←【追加】代わりにこれを書くと上揃えになります */
             height: 100vh;
             touch-action: none;
-
-            /* 0208　フォンと設定を戻したいときはこの下の4行を削除する*/
-            font-weight: 700; /* 太めに設定 */
-            letter-spacing: 0.05em; /* 文字間を少し広げる */
-            -webkit-font-smoothing: antialiased; /* 文字を滑らかにする */ 
-            transition: all 0.2s ease; /* 変化を滑らかに */           
         }
 
         #game-container {
@@ -182,7 +176,6 @@
             line-height: 1.6;
             z-index: 10;
             padding-bottom: 40px;
-            
         }
 
         #message-ok-btn {
@@ -492,6 +485,7 @@
     <div id="title-screen" style="display:none;">
 
         <img src="genin.png" id="title-logo" alt="タイトル画像">
+
         <div class="title-header">
             <h2 style="color:var(--accent-color); font-size: 24px; margin:0;">東下りクエスト</h2>
             <div id="caution-btn">使用上の注意</div>
@@ -580,9 +574,7 @@
     };
 
     let currentState = STATE.TITLE;
-    // ★これを追加：マウスを使っているかどうかのフラグ
-    let isUsingMouse = false;
-    
+
     const MAP_DATA = [
         // MAP 0: 古語の間
         {
@@ -740,7 +732,7 @@
             entities: []
         },
 
-        /* MAP 6: 隅田川の間
+        // MAP 6: 隅田川の間
         {
             id: 6,
             name: "隅田川[古文は試験範囲外]",
@@ -765,7 +757,6 @@
             ],
             entities: []
         },
-        */
 
         // MAP 7: 特訓会場（広間）
         {
@@ -856,9 +847,6 @@
     
     // システム用選択肢のコールバック
     let systemChoiceCallback = null;
-
-    // 現在表示中のシャッフルされた選択肢（{text, originalIndex}の配列）
-    let currentShuffledOptions = null;
 
     // 起動時にCSVを自動読み込み
     window.addEventListener('DOMContentLoaded', () => {
@@ -1212,18 +1200,15 @@
         }
     }
 
-
-    function startGame(mapIndex) { // 引数名をわかりやすく mapIndex に変更（mapIdでも動きますが意味合いが変わります）
-        if (mapIndex < 0 || mapIndex >= MAP_DATA.length) return;
+    function startGame(mapId) {
+        if (mapId < 0 || mapId >= MAP_DATA.length) return;
 
         titleScreen.style.display = 'none';
         menuBtn.style.display = 'block';
         gameStarted = true;
         
-        // ★修正ポイント：リストの順番(index)を使ってマップデータを取得し、
-        // そこに含まれる「本当のid」を currentMapId にセットする
-        currentMap = MAP_DATA[mapIndex];
-        currentMapId = currentMap.id;
+        currentMapId = mapId;
+        currentMap = MAP_DATA[currentMapId];
         
         // NPC生成ロジック
         currentMap.entities = [];
@@ -1247,7 +1232,6 @@
         player.direction = 'down';
         currentState = STATE.EXPLORING;
     }
-
 
     function generateNormalMapNPCs(mapId) {
         const npcsData = originalNPCsByMap[mapId] || [];
@@ -1443,11 +1427,6 @@
         keys[e.code] = false;
     });
 
-    // ★これを追加：マウスが動いたらフラグをONにする
-    window.addEventListener('mousemove', () => {
-        isUsingMouse = true;
-    });
-
     document.querySelectorAll('[data-key]').forEach(el => {
         el.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -1475,8 +1454,6 @@
 
     function handleInput(code) {
         if (infoModal.style.display === 'flex') return; // モーダル表示中は操作無効
-
-        isUsingMouse = false; // ★これを追加：キー操作したらマウスフラグをOFF
 
         if (STATE.TITLE === currentState) {
             handleTitleInput(code);
@@ -1545,10 +1522,8 @@
     }
 
     function handleChoiceInput(code) {
-        // currentShuffledOptionsの長さを使うことでシャッフル後も対応
-        const optionsCount = currentShuffledOptions ? currentShuffledOptions.length : currentQuizData.options.length;
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
-        const totalOptions = optionsCount + (hasHint && !systemChoiceCallback ? 1 : 0);
+        const totalOptions = currentQuizData.options.length + (hasHint && !systemChoiceCallback ? 1 : 0);
 
         if (code === 'ArrowUp') {
             if (currentChoiceIndex === -1) {
@@ -1702,28 +1677,10 @@
 
     function startQuiz(entity) {
         currentState = STATE.CHOICE;
-
-        isUsingMouse = false; // ★これを追加：クイズ開始時は一旦マウスを無視
-
         currentQuizData = entity.quiz;
         currentQuizEntity = entity;
         currentChoiceIndex = 0;
         systemChoiceCallback = null; 
-
-        // ★追加: 選択肢のシャッフル処理
-        if (currentQuizData.options) {
-            // 元のインデックスとテキストをペアにして保持
-            const mapped = currentQuizData.options.map((opt, i) => ({ text: opt, originalIndex: i }));
-            
-            // Fisher-Yates Shuffle
-            for (let i = mapped.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
-            }
-            currentShuffledOptions = mapped;
-        } else {
-            currentShuffledOptions = [];
-        }
 
         quizWindow.style.display = 'flex';
         quizQuestion.innerHTML = currentQuizData.question.replace(/\n/g, '<br>');
@@ -1805,15 +1762,11 @@
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
         const showHintBtn = hasHint && !systemChoiceCallback;
         
-        // ★変更: シャッフルされたオプションを使用
-        // nullガードを入れて安全に
-        const displayList = currentShuffledOptions || [];
-
         // 選択肢の生成
-        displayList.forEach((optObj, index) => {
+        currentQuizData.options.forEach((opt, index) => {
             const li = document.createElement('li');
             li.className = 'choice-item ' + (index === currentChoiceIndex ? 'selected' : '');
-            li.textContent = optObj.text; // シャッフル後のテキスト
+            li.textContent = opt;
             
             li.onclick = () => {
                 currentChoiceIndex = index; 
@@ -1821,19 +1774,19 @@
                 confirmChoice();
             };
             
-            // 変更後：条件に && isUsingMouse を追加
             li.onmouseover = () => {
-                if (currentState === STATE.CHOICE && isUsingMouse) { 
+                if (currentState === STATE.CHOICE) {
                     currentChoiceIndex = index;
                     renderChoices(); 
                 }
             }
+
             quizChoices.appendChild(li);
         });
 
-        // 「解説を見る」ボタンの生成 (常にリストの最後尾)
+        // 「解説を見る」ボタンの生成
         if (showHintBtn) {
-            const hintIndex = displayList.length;
+            const hintIndex = currentQuizData.options.length;
             const li = document.createElement('li');
             li.className = 'choice-item hint-btn ' + (hintIndex === currentChoiceIndex ? 'selected' : '');
             li.textContent = '解説を見る';
@@ -1845,7 +1798,7 @@
             };
 
             li.onmouseover = () => {
-                if (currentState === STATE.CHOICE && isUsingMouse) {
+                if (currentState === STATE.CHOICE) {
                     currentChoiceIndex = hintIndex;
                     renderChoices();
                 }
@@ -1865,31 +1818,24 @@
 
         // --- 追加: システム選択肢（召喚確認など）の場合の処理 ---
         if (systemChoiceCallback) {
-            // システム選択肢はシャッフルしていないので、currentChoiceIndexはそのままoriginalIndexとして使える
-            // ただし一貫性のため currentShuffledOptions 経由で取得しても良い
-            const actualIndex = currentShuffledOptions ? currentShuffledOptions[currentChoiceIndex].originalIndex : currentChoiceIndex;
-            systemChoiceCallback(actualIndex);
+            systemChoiceCallback(currentChoiceIndex);
             return;
         }
         // ----------------------------------------------------
 
         const hasHint = currentQuizData.hint && currentQuizData.hint.trim() !== "";
         const showHintBtn = hasHint && !systemChoiceCallback;
-        
-        // ヒントボタンは options の長さと同じインデックス
-        const isHintSelected = showHintBtn && (currentChoiceIndex === currentShuffledOptions.length);
+        const isHintSelected = showHintBtn && (currentChoiceIndex === currentQuizData.options.length);
 
         if (isHintSelected) {
             showHint();
             return;
         }
 
-        // ★変更: 表示インデックスから元の正解インデックスを取り出して判定
-        const selectedObj = currentShuffledOptions[currentChoiceIndex];
-        const originalIndex = selectedObj.originalIndex;
+        const selectedIndex = currentChoiceIndex;
         
         // 通常のクイズ判定
-        if (originalIndex === currentQuizData.correct) {
+        if (selectedIndex === currentQuizData.correct) {
             handleCorrectAnswer();
         } else {
             handleIncorrectAnswer();
@@ -2055,10 +2001,6 @@
             hint: ""
         };
         currentQuizEntity = null;
-
-        // ★追加: システム選択肢はシャッフルしない（固定順）
-        // そのままマッピング配列を作成してセット
-        currentShuffledOptions = currentQuizData.options.map((opt, i) => ({ text: opt, originalIndex: i }));
 
         // システム選択肢用のコールバックを設定
         systemChoiceCallback = (index) => {
